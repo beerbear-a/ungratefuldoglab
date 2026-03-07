@@ -19,9 +19,7 @@
       --border: rgba(66,64,61,0.1);
     }
 
-    html, body {
-      height: 100%;
-    }
+    html, body { height: 100%; }
 
     body {
       font-family: 'Cormorant Garamond', Georgia, serif;
@@ -117,8 +115,7 @@
     .footer-link::after {
       content: '';
       position: absolute;
-      bottom: -2px;
-      left: 0; right: 0;
+      bottom: -2px; left: 0; right: 0;
       height: 1px;
       background: var(--accent);
       transform: scaleX(0);
@@ -169,10 +166,10 @@
 
   <script>
     const canvas = document.getElementById('noise-canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx    = canvas.getContext('2d');
 
-    const ACCENT_RGB  = [167, 232, 246]; // #a7e8f6
-    const DARK_RGB    = [66,  64,  61];  // #42403d
+    const ACCENT = [167, 232, 246];
+    const DARK   = [66,  64,  61];
 
     function resize() {
       canvas.width  = canvas.offsetWidth;
@@ -181,51 +178,87 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // Pre-build a grid of cells that we flicker
-    const CELL = 3;           // px per noise cell
-    let cells = [];
+    // ── Particles ──────────────────────────────
+    // Each particle spawns randomly but avoids a
+    // circular dead-zone around the canvas center.
 
-    function buildCells() {
-      cells = [];
-      const cols = Math.ceil(canvas.width  / CELL);
-      const rows = Math.ceil(canvas.height / CELL);
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          cells.push({ x: c * CELL, y: r * CELL, active: false });
-        }
+    const MAX     = 55;
+    const SAFE_R  = 0.22; // fraction of min(w,h) kept clear around center
+
+    let particles = [];
+
+    function safeSpawn() {
+      const cx = canvas.width  / 2;
+      const cy = canvas.height / 2;
+      const r  = Math.min(canvas.width, canvas.height) * SAFE_R;
+
+      let x, y, attempts = 0;
+      do {
+        x = Math.random() * canvas.width;
+        y = Math.random() * canvas.height;
+        attempts++;
+      } while (Math.hypot(x - cx, y - cy) < r && attempts < 30);
+
+      const size       = Math.random() < 0.6 ? 2 : Math.random() < 0.5 ? 3 : 1;
+      const useAccent  = Math.random() < 0.62;
+      const maxOpacity = Math.random() * 0.55 + 0.12;
+      const ttl        = Math.random() * 90 + 30; // frames alive
+
+      return { x: Math.floor(x), y: Math.floor(y), size, useAccent, maxOpacity, age: 0, ttl };
+    }
+
+    function tickParticles() {
+      // age existing
+      particles = particles.filter(p => p.age < p.ttl);
+      particles.forEach(p => p.age++);
+
+      // spawn new ones randomly
+      if (particles.length < MAX && Math.random() < 0.35) {
+        particles.push(safeSpawn());
       }
     }
 
-    window.addEventListener('resize', () => { resize(); buildCells(); });
-    buildCells();
-
-    // How many cells to randomly flip each frame
-    const FLIP_RATIO = 0.018;
+    function easeInOut(t) { return t < 0.5 ? 2*t*t : -1+(4-2*t)*t; }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const flipCount = Math.floor(cells.length * FLIP_RATIO);
-      for (let i = 0; i < flipCount; i++) {
-        const idx = Math.floor(Math.random() * cells.length);
-        cells[idx].active = !cells[idx].active;
-        // randomise color tendency per flip
-        cells[idx].useAccent = Math.random() < 0.65;
-        cells[idx].alpha = Math.random() * 0.55 + 0.08;
-      }
+      particles.forEach(p => {
+        const progress = p.age / p.ttl;
+        // fade in first 20%, hold, fade out last 20%
+        let a;
+        if      (progress < 0.2) a = easeInOut(progress / 0.2);
+        else if (progress > 0.8) a = easeInOut((1 - progress) / 0.2);
+        else                      a = 1;
 
-      cells.forEach(cell => {
-        if (!cell.active) return;
-        const [r, g, b] = cell.useAccent ? ACCENT_RGB : DARK_RGB;
-        ctx.fillStyle = `rgba(${r},${g},${b},${cell.alpha})`;
-        ctx.fillRect(cell.x, cell.y, CELL, CELL);
+        const [r, g, b] = p.useAccent ? ACCENT : DARK;
+        ctx.fillStyle = `rgba(${r},${g},${b},${p.maxOpacity * a})`;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
       });
+
+      // ── occasional glitch lines ──
+      // thin horizontal slices that appear rarely in the periphery
+      if (Math.random() < 0.015) {
+        const zone = Math.random() < 0.5 ? 'top' : 'bottom';
+        const yRange = zone === 'top'
+          ? Math.random() * canvas.height * 0.3
+          : canvas.height * 0.7 + Math.random() * canvas.height * 0.3;
+
+        const lineW  = Math.random() * canvas.width * 0.3 + 20;
+        const lineX  = Math.random() * (canvas.width - lineW);
+        const [r, g, b] = Math.random() < 0.7 ? ACCENT : DARK;
+
+        ctx.fillStyle = `rgba(${r},${g},${b},${Math.random() * 0.35 + 0.1})`;
+        ctx.fillRect(lineX, Math.floor(yRange), lineW, 1);
+      }
     }
 
     let last = 0;
-    const INTERVAL = 60; // ~16fps flicker
+    const FPS_INTERVAL = 55;
+
     function loop(t) {
-      if (t - last >= INTERVAL) {
+      if (t - last >= FPS_INTERVAL) {
+        tickParticles();
         draw();
         last = t;
       }
