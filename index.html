@@ -12,9 +12,10 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #ffffff;
+      --bg-dark: #0c0b0a;
+      --bg-light: #ffffff;
       --accent: #a7e8f6;
-      --text: #42403d;
+      --text-dark: #42403d;
       --muted: rgba(66,64,61,0.36);
       --border: rgba(66,64,61,0.1);
     }
@@ -23,14 +24,15 @@
 
     body {
       font-family: 'Cormorant Garamond', Georgia, serif;
-      background: var(--bg);
-      color: var(--text);
+      background: var(--bg-light);
+      color: var(--text-dark);
       font-weight: 300;
       -webkit-font-smoothing: antialiased;
       display: flex;
       flex-direction: column;
     }
 
+    /* ── Hero ── */
     #hero {
       flex: 1;
       position: relative;
@@ -39,6 +41,7 @@
       justify-content: center;
       min-height: 100svh;
       overflow: hidden;
+      background: var(--bg-dark);
     }
 
     #signal-canvas {
@@ -52,16 +55,22 @@
     .hero-title {
       position: relative;
       z-index: 1;
-      font-size: clamp(1.25rem, 4vw, 2.75rem);
+      font-size: clamp(1.1rem, 3.5vw, 2.5rem);
       font-weight: 300;
-      letter-spacing: 0.22em;
+      letter-spacing: 0.28em;
       text-transform: uppercase;
       white-space: nowrap;
-      color: var(--text);
+      color: #ffffff;
+      /* Dark halo so text sits above waveforms */
+      text-shadow:
+        0 0 60px var(--bg-dark),
+        0 0 30px var(--bg-dark),
+        0 0 12px var(--bg-dark);
       opacity: 0;
-      animation: up 1.2s cubic-bezier(0.22,1,0.36,1) forwards 0.2s;
+      animation: up 1.4s cubic-bezier(0.22,1,0.36,1) forwards 0.3s;
     }
 
+    /* ── Footer ── */
     footer {
       border-top: 1px solid var(--border);
       padding: 2.75rem 2.5rem;
@@ -77,7 +86,7 @@
       font-size: 1.125rem;
       font-weight: 300;
       letter-spacing: 0.04em;
-      color: var(--text);
+      color: var(--text-dark);
     }
 
     .footer-meta {
@@ -111,7 +120,7 @@
       transform-origin: left;
       transition: transform 0.25s ease;
     }
-    .footer-link:hover { color: var(--text); }
+    .footer-link:hover { color: var(--text-dark); }
     .footer-link:hover::after { transform: scaleX(1); }
 
     .footer-copy {
@@ -129,7 +138,7 @@
     @keyframes up { to { opacity: 1; transform: none; } }
 
     @media (max-width: 520px) {
-      .hero-title { letter-spacing: 0.12em; white-space: normal; text-align: center; line-height: 1.15; }
+      .hero-title { letter-spacing: 0.14em; white-space: normal; text-align: center; line-height: 1.3; }
       footer { grid-template-columns: 1fr; align-items: start; padding: 2rem 1.5rem; }
     }
   </style>
@@ -157,9 +166,7 @@
     const canvas = document.getElementById('signal-canvas');
     const ctx    = canvas.getContext('2d');
 
-    // Colour tokens (rgb arrays)
-    const ACCENT = [167, 232, 246];
-    const DARK   = [66,  64,  61];
+    const BG = '#0c0b0a';
 
     let W, H;
     function resize() {
@@ -169,104 +176,78 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // ── Complex audio-signal waveform ───────────────────────────────
-    // Superposition of harmonics, like a real synthesised audio signal.
-    function signal(phase) {
-      return (
-        Math.sin(phase)            * 0.50 +
-        Math.sin(phase * 2 + 0.8) * 0.20 +
-        Math.sin(phase * 3 - 0.3) * 0.12 +
-        Math.sin(phase * 5 + 1.1) * 0.06 +
-        Math.sin(phase * 7 - 0.6) * 0.03
-      );
+    // ── Waveform shape ───────────────────────────────────────────────
+    // Superposition of inharmonic partials, rectified and sharpened —
+    // mimics the aperiodic, spiky character of pulsar radio data.
+    function pulse(phase) {
+      const raw =
+        Math.sin(phase)         * 0.54 +
+        Math.sin(phase * 2.17)  * 0.24 +
+        Math.sin(phase * 3.83)  * 0.13 +
+        Math.sin(phase * 7.11)  * 0.06 +
+        Math.sin(phase * 11.3)  * 0.03;
+      // Rectify then sharpen: suppresses baseline noise, sharpens peaks
+      return Math.pow(Math.max(0, raw), 2.2);
     }
 
-    // ── Wave definitions ─────────────────────────────────────────────
-    // Two waves: one below center (main, accent), one above (ghost, dark)
-    const waves = [
-      // Main wave — accent colour, below centre
-      {
-        yFrac:  0.68,
-        ampFrac: 0.055,   // amplitude as fraction of H
-        freqX:  0.022,    // spatial frequency (cycles per px)
-        speed:  0.38,     // phase advance per second
-        rgb:    ACCENT,
-        alpha:  0.48,
-        width:  1.0,
-      },
-      // Ghost wave — dark colour, above centre
-      {
-        yFrac:  0.30,
-        ampFrac: 0.028,
-        freqX:  0.014,
-        speed:  0.22,
-        rgb:    DARK,
-        alpha:  0.10,
-        width:  0.75,
-      },
-    ];
+    // ── Stack parameters ─────────────────────────────────────────────
+    const LINES = 40;
+    const TOP_FRAC    = 0.06;
+    const BOTTOM_FRAC = 0.94;
 
-    // ── Beat markers (vertical tick lines) ──────────────────────────
-    // Occasional thin vertical lines, like bar markers in a DAW timeline.
-    const markers = [];
-    let nextMarker = 0;
-
-    function spawnMarker(t) {
-      const x = Math.random() * W;
-      const useAccent = Math.random() < 0.6;
-      markers.push({ x, born: t, life: 1.4, rgb: useAccent ? ACCENT : DARK });
-    }
-
-    // ── Draw ─────────────────────────────────────────────────────────
     function draw(t) {
       const sec = t / 1000;
 
-      ctx.clearRect(0, 0, W, H);
+      // Dark background
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
 
-      // Waveforms
-      waves.forEach(w => {
-        const cy  = H * w.yFrac;
-        const amp = H * w.ampFrac;
-        // Slow amplitude "breath" — makes it feel alive
-        const breath = 0.82 + 0.18 * Math.sin(sec * 0.4 + w.yFrac * 10);
+      const totalH  = H * (BOTTOM_FRAC - TOP_FRAC);
+      const spacing = totalH / (LINES - 1);
 
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(${w.rgb.join(',')},${w.alpha})`;
-        ctx.lineWidth   = w.width;
-        ctx.lineJoin    = 'round';
-        ctx.lineCap     = 'round';
+      for (let i = 0; i < LINES; i++) {
+        const baseY    = H * TOP_FRAC + i * spacing;
+        const progress = i / (LINES - 1);          // 0 = top, 1 = bottom
 
-        for (let x = 0; x <= W; x += 1) {
-          const phase = x * w.freqX + sec * w.speed;
-          const y     = cy + signal(phase) * amp * breath;
-          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        // Bell-curve amplitude envelope, peak at 65% down the stack
+        const env = Math.exp(-Math.pow((progress - 0.65) / 0.28, 2) * 2.8);
+        const maxAmp = spacing * 5.5 * env;
+
+        // Unique phase seed per line; very slow drift for life
+        const seed = i * 83.17;
+        const drift = sec * 0.055;
+
+        // Sample waveform across full width (2 px steps → performance)
+        const STEP = 2;
+        const pts  = [];
+        for (let x = 0; x <= W; x += STEP) {
+          const phase = (x / W) * Math.PI * 20 + seed + drift;
+          pts.push([x, baseY - pulse(phase) * maxAmp]);
         }
-        ctx.stroke();
-      });
+        // Ensure we end exactly at W
+        const last = pts[pts.length - 1];
+        if (last[0] < W) pts.push([W, baseY]);
 
-      // Spawn beat markers occasionally
-      if (sec > nextMarker) {
-        spawnMarker(sec);
-        nextMarker = sec + 1.8 + Math.random() * 2.5;
-      }
-
-      // Draw and age markers
-      for (let i = markers.length - 1; i >= 0; i--) {
-        const m = markers[i];
-        const age = sec - m.born;
-        if (age > m.life) { markers.splice(i, 1); continue; }
-
-        const progress = age / m.life;
-        // Fade in then out
-        const a = progress < 0.1
-          ? progress / 0.1
-          : 1 - (progress - 0.1) / 0.9;
-
-        ctx.strokeStyle = `rgba(${m.rgb.join(',')},${0.22 * a})`;
-        ctx.lineWidth   = 0.75;
+        // ── Fill below waveform with bg colour ──────────────────────
+        // This is the core of the "stacking" illusion: each line's body
+        // occludes lines drawn earlier, so lower lines appear in front.
+        ctx.fillStyle = BG;
         ctx.beginPath();
-        ctx.moveTo(m.x, 0);
-        ctx.lineTo(m.x, H);
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (const [x, y] of pts) ctx.lineTo(x, y);
+        ctx.lineTo(W, H);
+        ctx.lineTo(0, H);
+        ctx.closePath();
+        ctx.fill();
+
+        // ── Stroke the waveform line ────────────────────────────────
+        const alpha = 0.28 + env * 0.68;  // brighter where envelope peaks
+        ctx.strokeStyle = `rgba(167,232,246,${alpha})`;
+        ctx.lineWidth   = 0.9;
+        ctx.lineJoin    = 'round';
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let k = 1; k < pts.length; k++) ctx.lineTo(pts[k][0], pts[k][1]);
         ctx.stroke();
       }
     }
