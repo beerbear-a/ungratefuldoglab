@@ -268,9 +268,9 @@
       return true;
     }
 
-    // ── Default origin — slightly right of center ──────────────────
-    const DEFAULT_OX = () => W * 0.58;
-    const DEFAULT_OY = () => H * 0.50;
+    // ── Random origin each spawn ───────────────────────────────────
+    const DEFAULT_OX = () => W  * (0.2 + Math.random() * 0.6);
+    const DEFAULT_OY = () => H  * (0.2 + Math.random() * 0.6);
 
     // ── Click / tap: spawn extra burst at that point ───────────────
     const hero = document.getElementById('hero');
