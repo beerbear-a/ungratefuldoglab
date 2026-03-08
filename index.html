@@ -167,18 +167,14 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // Mouse tracking
+    // Center moves only on click / tap — not on hover
     const hero = document.getElementById('hero');
     function setTarget(clientX, clientY) {
       const r = canvas.getBoundingClientRect();
       targetX = clientX - r.left;
       targetY = clientY - r.top;
     }
-    hero.addEventListener('mousemove', e => setTarget(e.clientX, e.clientY));
-    hero.addEventListener('touchmove', e => {
-      e.preventDefault();
-      setTarget(e.touches[0].clientX, e.touches[0].clientY);
-    }, { passive: false });
+    hero.addEventListener('click',      e => setTarget(e.clientX, e.clientY));
     hero.addEventListener('touchstart', e => {
       setTarget(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: true });
@@ -209,17 +205,17 @@
 
       const r   = ring.maxR * p;
       // fade: quick ramp in, long fade out
-      const a   = Math.pow(Math.sin(p * Math.PI), 0.6) * 0.55;
+      const a   = Math.pow(Math.sin(p * Math.PI), 0.5) * 0.75;
       const rot = ring.rot + ring.rotSpeed * sec;
 
-      ctx.lineWidth   = 0.5;
+      ctx.lineWidth   = 0.6;
       ctx.strokeStyle = ring.accent
         ? `rgba(167,232,246,${a})`
-        : `rgba(66,64,61,${a * 0.45})`;
+        : `rgba(66,64,61,${a * 0.5})`;
 
       // Sample the ring perimeter with noise on radius
       const STEPS  = ring.sides === 0 ? 120 : ring.sides * 24;
-      const noiseA = r * 0.08 * (1 - p * 0.5); // noise fades as ring expands
+      const noiseA = r * 0.025 * (1 - p * 0.5); // subtle noise — preserves edge shape
 
       ctx.beginPath();
       for (let i = 0; i <= STEPS; i++) {
@@ -266,7 +262,7 @@
       const CELL = 60;
       const ox   = (sec * 4) % CELL;
       const oy   = (sec * 3) % CELL;
-      const AMP  = 5; // noise amplitude in px
+      const AMP  = 2.5; // noise amplitude in px
 
       ctx.strokeStyle = 'rgba(167,232,246,0.12)';
       ctx.lineWidth   = 0.4;
@@ -300,7 +296,7 @@
       const maxR   = Math.min(W, H) * 0.42;
       const rot    = sec * 0.07;
       const breath = 0.55 + 0.45 * Math.sin(sec * 0.35);
-      const AMP    = 6; // wobble amplitude in px
+      const AMP    = 3; // wobble amplitude in px
 
       ctx.lineWidth = 0.4;
       for (let i = 0; i < N; i++) {
@@ -340,7 +336,7 @@
       const { a, b } = LISSAJOUS[lisIdx];
       const δ     = sec * 0.12;
       const scale = Math.min(W, H) * 0.12;
-      const AMP   = scale * 0.12; // noise amplitude relative to figure size
+      const AMP   = scale * 0.04; // subtle noise — Lissajous shape stays legible
 
       ctx.strokeStyle = 'rgba(167,232,246,0.28)';
       ctx.lineWidth   = 0.5;
