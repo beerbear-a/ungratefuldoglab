@@ -196,51 +196,85 @@
         ? `rgba(167,232,246,${a})`
         : `rgba(66,64,61,${a * 0.45})`;
 
+      // Sample the ring perimeter with noise on radius
+      const STEPS  = ring.sides === 0 ? 120 : ring.sides * 24;
+      const noiseA = r * 0.08 * (1 - p * 0.5); // noise fades as ring expands
+
       ctx.beginPath();
-      if (ring.sides === 0) {
-        ctx.arc(CX, CY, r, 0, Math.PI * 2);
-      } else {
-        for (let i = 0; i <= ring.sides; i++) {
-          const θ = (i / ring.sides) * Math.PI * 2 + rot;
-          const x = CX + r * Math.cos(θ);
-          const y = CY + r * Math.sin(θ);
-          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      for (let i = 0; i <= STEPS; i++) {
+        const frac = i / STEPS;
+        let θ;
+        if (ring.sides === 0) {
+          θ = frac * Math.PI * 2;
+        } else {
+          // Snap to polygon vertices, interpolate between
+          const seg   = Math.floor(frac * ring.sides);
+          const local = (frac * ring.sides) - seg;
+          θ = ((seg + local) / ring.sides) * Math.PI * 2 + rot;
         }
+        const nr = r + noiseA * noise(frac * 6, sec * 1.4, ring.born);
+        const x  = CX + nr * Math.cos(θ);
+        const y  = CY + nr * Math.sin(θ);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
+      ctx.closePath();
       ctx.stroke();
       return true;
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Static thin grid (very faint)
+    // Layered sine noise — cheap organic turbulence
     // ─────────────────────────────────────────────────────────────────
-    function drawGrid(sec) {
-      const CELL = 60;
-      // very slow drift
-      const ox = (sec * 4) % CELL;
-      const oy = (sec * 3) % CELL;
-
-      ctx.strokeStyle = 'rgba(167,232,246,0.1)';
-      ctx.lineWidth   = 0.4;
-
-      ctx.beginPath();
-      for (let x = -CELL + (W % CELL) / 2 - ox; x < W + CELL; x += CELL) {
-        ctx.moveTo(x, 0); ctx.lineTo(x, H);
-      }
-      for (let y = -CELL + (H % CELL) / 2 - oy; y < H + CELL; y += CELL) {
-        ctx.moveTo(0, y); ctx.lineTo(W, y);
-      }
-      ctx.stroke();
+    function noise(x, t, seed = 0) {
+      return (
+        Math.sin(x * 4.1  + t * 1.7  + seed) * 0.50 +
+        Math.sin(x * 9.3  - t * 2.3  + seed) * 0.30 +
+        Math.sin(x * 17.7 + t * 3.9  + seed) * 0.20
+      );
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Rotating radial spokes from center
+    // Grid — each line wavers with noise
+    // ─────────────────────────────────────────────────────────────────
+    function drawGrid(sec) {
+      const CELL = 60;
+      const ox   = (sec * 4) % CELL;
+      const oy   = (sec * 3) % CELL;
+      const AMP  = 5; // noise amplitude in px
+
+      ctx.strokeStyle = 'rgba(167,232,246,0.12)';
+      ctx.lineWidth   = 0.4;
+
+      // Vertical lines — wavy in x
+      for (let bx = -CELL + (W % CELL) / 2 - ox; bx < W + CELL; bx += CELL) {
+        ctx.beginPath();
+        for (let y = 0; y <= H; y += 6) {
+          const x = bx + AMP * noise(y / H, sec * 0.6, bx);
+          y === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      // Horizontal lines — wavy in y
+      for (let by = -CELL + (H % CELL) / 2 - oy; by < H + CELL; by += CELL) {
+        ctx.beginPath();
+        for (let x = 0; x <= W; x += 6) {
+          const y = by + AMP * noise(x / W, sec * 0.5, by);
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Spokes — lateral wobble along each spoke
     // ─────────────────────────────────────────────────────────────────
     function drawSpokes(sec) {
       const N      = 12;
       const maxR   = Math.min(W, H) * 0.42;
       const rot    = sec * 0.07;
       const breath = 0.55 + 0.45 * Math.sin(sec * 0.35);
+      const AMP    = 6; // wobble amplitude in px
 
       ctx.lineWidth = 0.4;
       for (let i = 0; i < N; i++) {
@@ -248,15 +282,25 @@
         const r = maxR * breath;
         const a = 0.05 + 0.06 * Math.abs(Math.sin((i / N) * Math.PI + sec * 0.2));
         ctx.strokeStyle = `rgba(66,64,61,${a})`;
+
+        // Perpendicular direction to the spoke
+        const px = -Math.sin(θ), py = Math.cos(θ);
+
         ctx.beginPath();
-        ctx.moveTo(CX, CY);
-        ctx.lineTo(CX + Math.cos(θ) * r, CY + Math.sin(θ) * r);
+        const SEGS = 20;
+        for (let s = 0; s <= SEGS; s++) {
+          const frac  = s / SEGS;
+          const d     = AMP * noise(frac, sec * 1.2, i * 5.3) * frac; // no wobble at origin
+          const x     = CX + Math.cos(θ) * r * frac + px * d;
+          const y     = CY + Math.sin(θ) * r * frac + py * d;
+          s === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
         ctx.stroke();
       }
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Lissajous figure — oscilloscope / audio X-Y plot
+    // Lissajous — radial noise displaces each point
     // ─────────────────────────────────────────────────────────────────
     const LISSAJOUS = [
       { a: 3, b: 2 },
@@ -266,20 +310,22 @@
     let lisIdx = 0, lisSwitch = 0;
 
     function drawLissajous(sec) {
-      // Cycle through figures every ~10 s
       if (sec - lisSwitch > 10) { lisIdx = (lisIdx + 1) % LISSAJOUS.length; lisSwitch = sec; }
       const { a, b } = LISSAJOUS[lisIdx];
-      const δ = sec * 0.12;            // slowly rotating phase
+      const δ     = sec * 0.12;
       const scale = Math.min(W, H) * 0.12;
+      const AMP   = scale * 0.12; // noise amplitude relative to figure size
 
       ctx.strokeStyle = 'rgba(167,232,246,0.28)';
       ctx.lineWidth   = 0.5;
       ctx.beginPath();
       const N = 600;
       for (let i = 0; i <= N; i++) {
-        const t = (i / N) * Math.PI * 2;
-        const x = CX + scale * Math.sin(a * t + δ);
-        const y = CY + scale * Math.sin(b * t);
+        const t  = (i / N) * Math.PI * 2;
+        const nx = AMP * noise(t, sec * 0.8, 1.0);
+        const ny = AMP * noise(t, sec * 0.7, 7.3);
+        const x  = CX + scale * Math.sin(a * t + δ) + nx;
+        const y  = CY + scale * Math.sin(b * t)      + ny;
         i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
       ctx.stroke();
