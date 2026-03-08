@@ -202,9 +202,9 @@
           env,
           baseAmp:     spacing * 5.5 * env,
           seed:        prev ? prev.seed : i * 83.17 + Math.random() * 40,
-          // Drift speed — fast enough to be clearly visible
-          speed:       prev ? prev.speed   : (0.6 + Math.random() * 1.8) * (Math.random() < 0.5 ? 1 : -1),
-          freqMod:     prev ? prev.freqMod : 0.85 + Math.random() * 0.35,
+          // All lines flow left — different speeds make them visually independent
+          speed:       prev ? prev.speed   : 0.8 + Math.random() * 1.6,
+          freqMod:     prev ? prev.freqMod : 0.7 + Math.random() * 0.6,
           // Breath: amplitude pulses at a visible rate
           breathRate:  prev ? prev.breathRate  : 0.5 + Math.random() * 1.4,
           breathPhase: prev ? prev.breathPhase : Math.random() * Math.PI * 2,
@@ -247,7 +247,7 @@
         const STEP = 2;
         const pts  = [];
         for (let x = 0; x <= W; x += STEP) {
-          const phase = (x / W) * Math.PI * 20 * ln.freqMod + ln.seed + sec * ln.speed;
+          const phase = (x / W) * Math.PI * 10 * ln.freqMod + ln.seed + sec * ln.speed;
           pts.push([x, ln.baseY - pulse(phase) * amp]);
         }
         if (pts[pts.length - 1][0] < W) pts.push([W, ln.baseY]);
