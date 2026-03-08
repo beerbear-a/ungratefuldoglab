@@ -244,13 +244,18 @@
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // Layered sine noise — cheap organic turbulence
+    // Stepped / quantised noise — jagged, digital stutter feel
+    // Time is quantised to discrete steps so the noise value "snaps"
+    // rather than flowing smoothly → produces a jittery, VJ glitch look.
     // ─────────────────────────────────────────────────────────────────
+    const NOISE_STEP = 0.10; // seconds per noise frame (lower = faster stutter)
     function noise(x, t, seed = 0) {
+      // Quantise time → value holds for NOISE_STEP seconds then jumps
+      const qt = Math.floor(t / NOISE_STEP) * NOISE_STEP;
       return (
-        Math.sin(x * 4.1  + t * 1.7  + seed) * 0.50 +
-        Math.sin(x * 9.3  - t * 2.3  + seed) * 0.30 +
-        Math.sin(x * 17.7 + t * 3.9  + seed) * 0.20
+        Math.sin(x * 4.1  + qt * 1.7  + seed) * 0.50 +
+        Math.sin(x * 9.3  - qt * 2.3  + seed) * 0.30 +
+        Math.sin(x * 17.7 + qt * 3.9  + seed) * 0.20
       );
     }
 
