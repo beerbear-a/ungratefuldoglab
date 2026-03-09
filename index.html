@@ -206,7 +206,7 @@
     function spawnBurst(ox, oy, sec) {
       const N         = 3 + Math.floor(Math.random() * 6);
       // Start large enough that the shape is legible from the first frame
-      const baseScale = 0.12 + Math.random() * 0.10;
+      const baseScale = 0.12 + Math.random() * 0.50;
       const stagger   = 0.12 + Math.random() * 0.25;
       const lifeBase  = 3.0 + Math.random() * 3.0;
       const dirBias   = Math.random() < 0.5 ? 1 : -1;
