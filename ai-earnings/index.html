@@ -2,682 +2,1319 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>【衝撃】AIが今この瞬間も稼ぎ続けています</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AIで稼ぎ始める — 本質を理解しているあなたへ</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      background: #000;
-      color: #00ff41;
-      font-family: 'Courier New', monospace;
-      overflow-x: hidden;
-      min-height: 100vh;
+    :root {
+      --gold: #ffd700;
+      --gold2: #ffb300;
+      --orange: #ff8c00;
+      --red: #ff4040;
+      --green: #00ff88;
+      --bg: #050505;
+      --glass: rgba(255,255,255,0.045);
+      --glass-b: rgba(255,255,255,0.07);
+      --blur: blur(24px);
     }
-
-    #matrix { position: fixed; top:0; left:0; width:100%; height:100%; z-index:0; opacity:0.12; }
-
-    /* Confetti canvas */
-    #confetti { position: fixed; top:0; left:0; width:100%; height:100%; z-index:5; pointer-events:none; }
-
-    .container {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px 16px 60px;
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body {
+      height:100%; overflow:hidden;
+      background:var(--bg);
+      color:#ccc;
+      font-family:-apple-system,'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;
+      -webkit-font-smoothing:antialiased;
     }
+    #matrix { position:fixed;inset:0;z-index:0;opacity:0.05;pointer-events:none; }
+    #confetti { position:fixed;inset:0;z-index:5;pointer-events:none; }
 
-    /* URGENT BANNER */
-    .urgent-banner {
-      width: 100%;
-      background: linear-gradient(90deg, #ff0000, #ff6600, #ff0000);
-      background-size: 200% 100%;
-      animation: urgentSlide 1.5s linear infinite;
-      color: #fff;
-      font-weight: 900;
-      font-size: 13px;
-      text-align: center;
-      padding: 8px;
-      letter-spacing: 2px;
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 100;
+    /* ===== SCREEN FLASH ===== */
+    #screen-flash {
+      position:fixed;inset:0;z-index:700;pointer-events:none;
+      opacity:0;transition:opacity 0.1s ease-in,opacity 0.5s ease-out 0.1s;
+      background:rgba(255,215,0,0.15);
     }
-    @keyframes urgentSlide {
-      0% { background-position: 0% 50%; }
-      100% { background-position: 200% 50%; }
-    }
+    #screen-flash.active { opacity:1; }
 
-    /* LIVE viewers */
+    /* ===== EDGE GLOW ===== */
+    #edge-glow {
+      position:fixed;inset:0;z-index:2;pointer-events:none;
+      box-shadow:inset 0 0 60px rgba(255,215,0,0.08);
+      transition:box-shadow 0.5s ease;
+    }
+    #edge-glow.intense { box-shadow:inset 0 0 80px rgba(255,215,0,0.22); }
+
+    /* ===== ACHIEVEMENT TOASTS ===== */
+    #achievement-stack {
+      position:fixed;bottom:100px;right:12px;z-index:600;
+      display:flex;flex-direction:column-reverse;gap:6px;
+      pointer-events:none;align-items:flex-end;
+    }
+    .achievement-toast {
+      background:rgba(18,14,0,0.97);
+      border:1px solid rgba(255,215,0,0.4);
+      border-radius:12px;padding:8px 12px;
+      font-size:11px;font-weight:700;color:var(--gold);
+      box-shadow:0 4px 20px rgba(255,215,0,0.15);
+      backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+      white-space:nowrap;
+      animation:toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1),toastOut 0.4s ease 2.6s forwards;
+    }
+    @keyframes toastIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+    @keyframes toastOut{to{transform:translateX(110%);opacity:0}}
+
+    /* LIVE BAR — top fixed strip */
     .live-bar {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-top: 50px;
-      margin-bottom: 12px;
-      font-size: 12px;
-      color: #666;
+      position:fixed;top:0;left:0;right:0;z-index:310;
+      height:28px;
+      background:rgba(180,0,0,0.92);
+      display:flex;align-items:center;justify-content:center;gap:8px;
+      padding:0 8px;
+      font-size:11px;font-weight:700;color:#fff;letter-spacing:0.3px;
+      border-bottom:1px solid rgba(255,255,255,0.12);
+      overflow:hidden;
+    }
+    .live-bar-text {
+      overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+      flex:1;min-width:0;text-align:center;
     }
     .live-dot {
-      width: 8px; height: 8px;
-      background: #ff0040;
-      border-radius: 50%;
-      box-shadow: 0 0 8px #ff0040;
-      animation: blink 1s infinite;
+      width:6px;height:6px;border-radius:50%;background:#fff;
+      box-shadow:0 0 6px #fff;animation:blink 1s infinite;flex-shrink:0;
     }
-    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
-    h1 {
-      font-size: clamp(18px, 4vw, 38px);
-      text-align: center;
-      color: #fff;
-      text-shadow: 0 0 30px #ff8c00, 0 0 60px #ff4500;
-      margin-bottom: 6px;
-      line-height: 1.3;
-    }
-
-    .h1-accent { color: #ffff00; text-shadow: 0 0 20px #ffff00; }
-
-    .subtitle {
-      font-size: 12px;
-      color: #666;
-      margin-bottom: 28px;
-      text-align: center;
-    }
-
-    /* === MAIN CARD === */
-    .earnings-card {
-      background: radial-gradient(ellipse at center, rgba(255,100,0,0.08) 0%, rgba(0,0,0,0) 70%);
-      border: 2px solid #ff4500;
-      border-radius: 20px;
-      padding: 36px 50px;
-      text-align: center;
-      box-shadow: 0 0 60px rgba(255,69,0,0.3), 0 0 120px rgba(255,69,0,0.1), inset 0 0 40px rgba(255,69,0,0.05);
-      margin-bottom: 20px;
-      min-width: min(92vw, 600px);
-      position: relative;
-      overflow: hidden;
-    }
-
-    .earnings-card::after {
-      content: '';
-      position: absolute;
-      top: -50%; left: -50%;
-      width: 200%; height: 200%;
-      background: conic-gradient(transparent 0deg, rgba(255,150,0,0.04) 90deg, transparent 180deg);
-      animation: rotate 4s linear infinite;
-    }
-    @keyframes rotate { to { transform: rotate(360deg); } }
-
-    .earnings-label {
-      font-size: 11px;
-      color: #888;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    .earnings-amount {
-      font-size: clamp(40px, 9vw, 78px);
-      font-weight: 900;
-      color: #ffdd00;
-      text-shadow: 0 0 40px #ff8c00, 0 0 80px #ff4500;
-      letter-spacing: -2px;
-      font-variant-numeric: tabular-nums;
-      line-height: 1;
-      margin-bottom: 8px;
-      position: relative;
-      z-index: 1;
-      transition: all 0.05s;
-    }
-
-    .earnings-amount.mega-flash {
-      color: #fff;
-      text-shadow: 0 0 80px #fff, 0 0 160px #fff;
-      transform: scale(1.04);
-    }
-
-    .usd-note {
-      font-size: 14px;
-      color: #ff8c00;
-      margin-bottom: 10px;
-      font-weight: bold;
-      position: relative;
-      z-index: 1;
-    }
-
-    .per-second {
-      font-size: 13px;
-      color: #00ff41;
-      position: relative;
-      z-index: 1;
-    }
-
-    /* rank badge */
-    .rank-badge {
-      display: inline-block;
-      background: linear-gradient(135deg, #ffd700, #ff8c00);
-      color: #000;
-      font-weight: 900;
-      font-size: 11px;
-      padding: 3px 10px;
-      border-radius: 20px;
-      margin-top: 14px;
-      letter-spacing: 1px;
-      position: relative;
-      z-index: 1;
-      animation: rankPulse 0.8s ease infinite;
-    }
-    @keyframes rankPulse {
-      0%,100% { box-shadow: 0 0 10px #ffd700; }
-      50%      { box-shadow: 0 0 30px #ffd700, 0 0 60px #ff8c00; }
-    }
-
-    /* === STATS GRID === */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      width: min(92vw, 600px);
-      margin-bottom: 16px;
-    }
-
-    .stat-card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid #1a1a00;
-      border-radius: 12px;
-      padding: 14px 10px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top:0; left:0; right:0; height: 2px;
-      background: linear-gradient(90deg, #ff4500, #ffd700, #ff4500);
-      background-size: 200% 100%;
-      animation: shimmer 2s linear infinite;
-    }
-    @keyframes shimmer { to { background-position: 200% 0; } }
-
-    .stat-value { font-size: 20px; font-weight: 700; color: #ffd700; }
-    .stat-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
-
-    /* === POPUP NOTIFICATIONS === */
+    /* ===== POPUP AREA ===== */
     #popup-area {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 200;
-      display: flex;
-      flex-direction: column-reverse;
-      gap: 8px;
-      pointer-events: none;
+      position:fixed;bottom:130px;right:12px;z-index:500;
+      display:flex;flex-direction:column-reverse;gap:6px;
+      pointer-events:none;max-width:220px;
     }
-
     .popup {
-      background: rgba(0,0,0,0.95);
-      border: 1px solid #ffd700;
-      border-left: 4px solid #ffd700;
-      border-radius: 8px;
-      padding: 10px 16px;
-      font-size: 12px;
-      color: #ffd700;
-      max-width: 260px;
-      box-shadow: 0 0 20px rgba(255,215,0,0.3);
-      animation: slideIn 0.3s ease, fadeOut 0.5s ease 3.5s forwards;
+      background:rgba(22,22,24,0.95);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:14px;padding:10px 12px;
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      box-shadow:0 8px 32px rgba(0,0,0,0.5);
+      animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1),popOut 0.35s ease 3.6s forwards;
     }
-    .popup .name { color: #fff; font-weight: bold; }
-    .popup .amount { color: #00ff41; font-weight: bold; }
+    @keyframes popIn{from{transform:translateX(110%);opacity:0}to{transform:translateX(0);opacity:1}}
+    @keyframes popOut{to{transform:translateX(110%);opacity:0}}
+    .notif-head { display:flex;align-items:center;gap:7px;margin-bottom:5px; }
+    .notif-icon { font-size:16px;line-height:1; }
+    .notif-meta { flex:1;min-width:0; }
+    .notif-app { font-size:10px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:0.5px; }
+    .notif-time { font-size:9px;color:rgba(255,255,255,0.25); }
+    .notif-body { font-size:11px;color:rgba(255,255,255,0.55);line-height:1.45; }
 
-    @keyframes slideIn { from { transform: translateX(120%); opacity:0; } to { transform: translateX(0); opacity:1; } }
-    @keyframes fadeOut { to { opacity:0; transform: translateX(120%); } }
-
-    /* === MILESTONE OVERLAY === */
+    /* ===== MILESTONE ===== */
     #milestone {
-      position: fixed;
-      inset: 0;
-      z-index: 300;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0,0,0,0.85);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
+      position:fixed;inset:0;z-index:650;pointer-events:none;
+      display:flex;align-items:center;justify-content:center;
+      opacity:0;transition:opacity 0.25s;
     }
-    #milestone.show { opacity: 1; pointer-events: all; }
-    .milestone-inner {
-      text-align: center;
-      padding: 40px;
-      border: 3px solid #ffd700;
-      border-radius: 20px;
-      background: rgba(0,0,0,0.9);
-      box-shadow: 0 0 80px #ffd700;
-      animation: milestonePop 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+    #milestone.show { opacity:1; }
+    .ms-box {
+      background:rgba(10,8,0,0.95);
+      border:1px solid rgba(255,215,0,0.3);
+      border-radius:24px;padding:20px 28px;text-align:center;
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      box-shadow:0 0 80px rgba(255,215,0,0.15);
     }
-    @keyframes milestonePop { from { transform: scale(0.3) rotate(-5deg); } to { transform: scale(1) rotate(0deg); } }
-    .milestone-emoji { font-size: 60px; margin-bottom: 10px; }
-    .milestone-text { font-size: 28px; font-weight: 900; color: #ffd700; text-shadow: 0 0 30px #ffd700; }
-    .milestone-sub { font-size: 14px; color: #888; margin-top: 8px; }
+    .ms-emoji { font-size:40px;margin-bottom:6px; }
+    .ms-text { font-size:20px;font-weight:900;color:var(--gold);margin-bottom:3px; }
+    .ms-sub { font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px; }
+    .ms-cynic { font-size:9px;color:rgba(255,255,255,0.15); }
 
-    /* === LOG BOX === */
-    .log-box {
-      width: min(92vw, 600px);
-      background: rgba(0,0,0,0.8);
-      border: 1px solid #1a1a00;
-      border-radius: 12px;
-      padding: 14px;
-      height: 180px;
-      overflow: hidden;
-      margin-bottom: 20px;
-      position: relative;
+    /* ===== EXIT TRAP ===== */
+    #exit-trap {
+      position:fixed;inset:0;z-index:800;
+      background:rgba(0,0,0,0.92);
+      display:flex;align-items:flex-end;justify-content:center;
+      opacity:0;pointer-events:none;transition:opacity 0.3s;
     }
-    .log-box::before {
-      content: '◉ LIVE';
-      position: absolute; top:10px; right:14px;
-      font-size: 10px; color: #ff0040;
-      animation: blink 1s infinite;
+    #exit-trap.show { opacity:1;pointer-events:all; }
+    .exit-box {
+      background:rgba(12,8,0,0.98);
+      border:1px solid rgba(255,64,64,0.3);
+      border-radius:24px 24px 0 0;
+      padding:20px 20px 32px;
+      width:100%;max-width:560px;text-align:center;
     }
-    .log-line { font-size: 11px; color: #4a8040; line-height: 1.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .log-line .amount { color: #ffd700; font-weight: bold; }
-    .log-line .tag { color: #ff8c00; }
-    .log-line .big { color: #ff4500; font-weight: bold; font-size: 12px; }
-
-    /* === GOAL BAR === */
-    .goal-section { width: min(92vw, 600px); margin-bottom: 20px; }
-    .goal-label { display:flex; justify-content:space-between; font-size:11px; color:#666; margin-bottom:6px; }
-    .progress-bar { height: 10px; background:#111; border-radius:5px; overflow:hidden; border:1px solid #1a1a00; }
-    .progress-fill {
-      height:100%;
-      background: linear-gradient(90deg, #ff4500, #ffd700, #00ff41);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s linear infinite;
-      border-radius:5px;
-      box-shadow: 0 0 12px #ffd700;
-      transition: width 0.3s ease;
+    .exit-emoji { font-size:36px;margin-bottom:6px; }
+    .exit-title { font-size:22px;font-weight:900;color:var(--red);margin-bottom:4px; }
+    .exit-yield-display {
+      font-size:32px;font-weight:900;color:var(--red);
+      text-shadow:0 0 30px rgba(255,64,64,0.5);
+      text-align:center;margin:8px 0 4px;
+      font-variant-numeric:tabular-nums;
+    }
+    .exit-body { font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;margin-bottom:14px; }
+    .exit-stay {
+      display:block;width:100%;padding:14px;margin-bottom:8px;
+      background:linear-gradient(135deg,var(--orange),var(--gold));
+      border:none;border-radius:16px;
+      font-size:16px;font-weight:900;color:#000;cursor:pointer;
+      font-family:inherit;
+    }
+    .exit-go {
+      display:block;width:100%;padding:10px;
+      background:transparent;border:1px solid rgba(255,255,255,0.1);
+      border-radius:12px;font-size:12px;color:rgba(255,255,255,0.3);
+      cursor:pointer;font-family:inherit;
     }
 
-    /* === HYPE TEXT === */
-    .hype-box {
-      width: min(92vw, 600px);
-      text-align: center;
-      margin-bottom: 20px;
+    /* ===== SELECTED FLASH ===== */
+    #selected-flash {
+      position:fixed;top:54px;left:50%;transform:translateX(-50%);
+      z-index:600;pointer-events:none;
+      opacity:0;transition:opacity 0.2s;
     }
-    .hype-msg {
-      font-size: 13px;
-      font-weight: bold;
-      color: #fff;
-      text-shadow: 0 0 10px #ff8c00;
-      line-height: 2;
-    }
-    .hype-msg span { color: #ffdd00; }
-
-    /* AI Models */
-    .ai-models { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:20px; }
-    .model-tag {
-      background: rgba(255,165,0,0.1);
-      border: 1px solid rgba(255,165,0,0.3);
-      border-radius: 20px;
-      padding: 4px 10px;
-      font-size: 10px;
-      color: #ffa500;
+    #selected-flash.show { opacity:1; }
+    .sf-text {
+      background:rgba(255,215,0,0.12);
+      border:1px solid rgba(255,215,0,0.35);
+      border-radius:20px;padding:6px 16px;
+      font-size:12px;font-weight:700;color:var(--gold);
+      backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+      white-space:nowrap;
     }
 
-    .disclaimer { font-size: 9px; color: #1a1a1a; text-align:center; max-width:500px; line-height:1.6; }
+    /* ===== MAIN SCREEN ===== */
+    .screen {
+      position:fixed;top:28px;bottom:0;left:0;right:0;
+      display:flex;flex-direction:column;gap:5px;
+      padding:5px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+      max-width:560px;margin:0 auto;
+      z-index:10;overflow:hidden;
+    }
+    /* small phones (iPhone SE etc ≤375px wide or ≤700px tall) */
+    @media (max-height:700px),(max-width:375px) {
+      .screen { gap:3px; padding:3px 10px calc(6px + env(safe-area-inset-bottom, 0px)); }
+      .glass { padding:7px 10px; }
+      .yield-center { padding:4px 8px 2px; }
+      .yield-label { display:none; }
+      .yield-num { font-size:clamp(26px,8vw,40px); }
+      .yield-rate { font-size:9px; margin-top:1px; }
+      .hero-bottom { margin-top:3px; }
+      .earn-num { font-size:clamp(18px,5.5vw,28px); }
+      .rank-chip { margin-top:2px; padding:2px 8px; }
+      .stat-v { font-size:13px; }
+      .stat-card { padding:5px 6px; }
+      .row-ticker { padding:3px 0; }
+      .ticker { font-size:8px; }
+      .cta-btn { padding:11px 12px; font-size:14px; }
+      .countdown-num { font-size:15px; }
+      .countdown-wrap { margin-bottom:4px; }
+      .cta-secure { font-size:8px; margin-top:3px; }
+      .sunk-cost { margin-top:2px; }
+      .persona-bar { padding:3px 8px; }
+      .persona-inner { font-size:8px; }
+      .goal-label { font-size:8px; }
+    }
 
-    /* Scroll ticker */
-    .ticker-wrap {
-      width: 100%;
-      overflow: hidden;
-      background: rgba(255,69,0,0.1);
-      border-top: 1px solid #331100;
-      border-bottom: 1px solid #331100;
-      padding: 6px 0;
-      margin-bottom: 20px;
+    /* ===== GLASS CARD BASE ===== */
+    .glass {
+      background:var(--glass);
+      border:1px solid var(--glass-b);
+      border-radius:16px;
+      backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+      padding:10px 12px;
+    }
+
+    /* ===== ROW-HERO ===== */
+    .row-hero {
+      position:relative;overflow:hidden;flex-shrink:0;
+    }
+    .row-hero::after {
+      content:'';position:absolute;top:0;left:-200%;width:400%;height:100%;
+      background:linear-gradient(90deg,transparent 0%,rgba(255,215,0,0.04) 50%,transparent 100%);
+      animation:goldwave 8s ease-in-out infinite;pointer-events:none;
+    }
+    @keyframes goldwave { 0%,100%{transform:translateX(0)} 50%{transform:translateX(25%)} }
+
+    .hero-top {
+      display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;
+    }
+    .hero-diag-badge {
+      font-size:9px;font-weight:700;color:var(--gold);
+      background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);
+      border-radius:8px;padding:2px 8px;letter-spacing:0.5px;
+    }
+    .scarcity-chip {
+      font-size:9px;font-weight:900;color:var(--red);
+      background:rgba(255,64,64,0.1);border:1px solid rgba(255,64,64,0.25);
+      border-radius:8px;padding:2px 8px;letter-spacing:0.5px;
+      animation:scarcepulse 2s ease infinite;
+    }
+    .scarcity-chip.urgent { animation:scarepulse 0.6s ease infinite; }
+    @keyframes scarcepulse{0%,100%{opacity:1}50%{opacity:0.7}}
+    @keyframes scarepulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+    .seats-num { font-weight:900; }
+
+    .yield-center {
+      position:relative;text-align:center;padding:8px 12px 4px;overflow:hidden;
+    }
+    .yield-label {
+      font-size:8px;color:rgba(255,255,255,0.25);letter-spacing:2.5px;
+      text-transform:uppercase;margin-bottom:3px;
+    }
+    .yield-num {
+      font-size:clamp(34px,9.5vw,52px);font-weight:900;
+      color:var(--gold);letter-spacing:-2px;line-height:1;
+      font-variant-numeric:tabular-nums;
+      text-shadow:0 0 40px rgba(255,200,0,0.4);
+      transition:color 0.05s,transform 0.08s;
+      position:relative;z-index:1;
+    }
+    .yield-num.beat {
+      color:#fff;transform:scale(1.05);
+      text-shadow:0 0 60px rgba(255,255,255,0.9),0 0 20px var(--gold);
+    }
+    .yield-rate { font-size:10px;color:var(--green);margin-top:3px;position:relative;z-index:1; }
+
+    .hero-bottom { display:flex;align-items:center;gap:8px;margin-top:6px; }
+    .hero-score-small {
+      flex-shrink:0;text-align:center;
+      background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.15);
+      border-radius:10px;padding:4px 8px;
+    }
+    .hss-num { font-size:18px;font-weight:900;color:var(--gold);line-height:1; }
+    .hss-label { font-size:7px;color:rgba(255,215,0,0.4); }
+    .hero-text-right { flex:1;min-width:0; }
+    .hero-rank { font-size:9px;color:var(--green);font-weight:700;margin-bottom:2px; }
+    .cap-tag {
+      display:inline-flex;align-items:center;gap:4px;
+      background:rgba(255,140,0,0.08);border:1px solid rgba(255,140,0,0.18);
+      border-radius:7px;padding:2px 8px;font-size:9px;color:var(--orange);font-weight:700;
+      overflow:hidden;max-width:100%;
+    }
+    .cap-word { transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1),opacity 0.25s; }
+    .cap-word.leaving { transform:translateY(-14px);opacity:0; }
+
+    /* ===== ROW-EARNINGS ===== */
+    .row-earnings { flex-shrink:0; }
+    .earn-label { font-size:8px;color:rgba(255,255,255,0.2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px; }
+    .earn-num {
+      font-size:clamp(22px,6.5vw,34px);font-weight:900;color:var(--gold);
+      letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums;
+      text-shadow:0 0 30px rgba(255,200,0,0.3);
+      transition:color 0.05s;
+    }
+    .earn-num.flash { color:#fff; }
+    .earn-sub-row { display:flex;align-items:center;justify-content:space-between;margin-top:3px; }
+    .earn-usd { font-size:9px;color:rgba(255,255,255,0.2); }
+    .earn-rate { font-size:9px;color:var(--green);font-weight:700; }
+    .rank-chip {
+      display:inline-block;margin-top:5px;
+      background:rgba(255,215,0,0.07);border:1px solid rgba(255,215,0,0.15);
+      border-radius:8px;padding:3px 10px;font-size:9px;color:rgba(255,215,0,0.6);font-weight:700;
+    }
+
+    /* ===== PERSONA BAR ===== */
+    .persona-bar {
+      flex-shrink:0;
+      background:rgba(0,255,136,0.03);border:1px solid rgba(0,255,136,0.08);
+      border-radius:10px;padding:5px 10px;overflow:hidden;
+    }
+    .persona-inner {
+      font-size:9px;color:rgba(0,255,136,0.35);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      transition:opacity 0.3s;
+    }
+
+    /* ===== ROW-STATS ===== */
+    .row-stats { flex-shrink:0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px; }
+    .stat-card {
+      background:var(--glass);border:1px solid var(--glass-b);
+      border-radius:12px;padding:7px 8px;text-align:center;
+      backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    }
+    .stat-v { font-size:16px;font-weight:900;color:var(--gold);line-height:1;font-variant-numeric:tabular-nums; }
+    .stat-l { font-size:8px;color:rgba(255,255,255,0.3);margin-top:2px; }
+
+    /* ===== ROW-GOAL ===== */
+    .row-goal { flex-shrink:0; }
+    .goal-label { display:flex;justify-content:space-between;align-items:center;font-size:9px;color:rgba(255,255,255,0.25);margin-bottom:4px; }
+    #goal-pct { color:var(--green);font-weight:700; }
+    .pbar { height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden; }
+    .pfill { height:100%;background:linear-gradient(90deg,var(--orange),var(--gold));border-radius:3px;transition:width 0.3s; }
+
+    /* ===== ROW-TICKER ===== */
+    .row-ticker {
+      flex-shrink:0;overflow:hidden;
+      background:rgba(0,255,136,0.03);border:1px solid rgba(0,255,136,0.06);
+      border-radius:8px;padding:5px 0;
     }
     .ticker {
-      display: inline-block;
-      white-space: nowrap;
-      animation: ticker 20s linear infinite;
-      font-size: 11px;
-      color: #ff8c00;
+      display:inline-block;
+      font-size:9px;color:rgba(255,255,255,0.25);
+      white-space:nowrap;
+      animation:tickerScroll 60s linear infinite;
     }
-    @keyframes ticker { from { transform: translateX(100vw); } to { transform: translateX(-100%); } }
+    @keyframes tickerScroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+
+    /* ===== ROW-LOG ===== */
+    .row-log {
+      flex:2;min-height:0;overflow:hidden;
+      background:var(--glass);border:1px solid var(--glass-b);
+      border-radius:12px;padding:8px 10px;
+      position:relative;
+    }
+    .log-live {
+      font-size:8px;font-weight:700;color:var(--red);
+      letter-spacing:1px;display:block;margin-bottom:4px;
+    }
+    .log-line {
+      font-size:9px;color:rgba(255,255,255,0.22);
+      line-height:1.6;font-family:'Courier New',monospace;
+    }
+    .log-line .amt { color:var(--green);font-weight:700; }
+    .log-line .tag { color:rgba(255,215,0,0.4);font-size:8px; }
+    .log-line .meta { color:rgba(255,140,0,0.4);font-size:8px; }
+
+    /* ===== ROW-CTA ===== */
+    .row-cta { flex-shrink:0; }
+    .countdown-wrap {
+      display:flex;align-items:center;gap:6px;justify-content:center;
+      margin-bottom:6px;
+    }
+    .countdown-label { font-size:9px;color:rgba(255,255,255,0.3); }
+    .countdown-num { font-size:18px;font-weight:900;color:var(--red);letter-spacing:1px;font-variant-numeric:tabular-nums; }
+    .cta-btn {
+      display:block;width:100%;padding:14px 16px;
+      background:linear-gradient(135deg,var(--orange),var(--gold));
+      border:none;border-radius:18px;
+      font-size:16px;font-weight:900;color:#000;
+      cursor:pointer;font-family:inherit;
+      box-shadow:0 4px 30px rgba(255,180,0,0.25);
+      transition:transform 0.1s,box-shadow 0.1s;
+      animation:ctapulse 2.5s ease infinite;
+    }
+    .cta-btn:active { transform:scale(0.97); }
+    @keyframes ctapulse{0%,100%{box-shadow:0 4px 30px rgba(255,180,0,0.25)}50%{box-shadow:0 4px 50px rgba(255,180,0,0.5)}}
+    #cta-amount { font-size:1em;font-weight:900; }
+    .cta-secure {
+      font-size:9px;color:rgba(255,255,255,0.18);text-align:center;margin-top:5px;
+      letter-spacing:0.3px;
+    }
+    .sunk-cost {
+      font-size:8px;color:rgba(255,255,255,0.2);text-align:center;margin-top:4px;
+    }
+
+    /* ===== SHAKE ===== */
+    @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+
+    /* ===== MODAL ===== */
+    #cta-modal {
+      position:fixed;inset:0;z-index:900;
+      background:rgba(0,0,0,0.85);
+      display:flex;align-items:flex-end;justify-content:center;
+      opacity:0;pointer-events:none;transition:opacity 0.3s;
+    }
+    #cta-modal.show { opacity:1;pointer-events:all; }
+    .modal-sheet {
+      background:rgba(12,10,0,0.98);
+      border:1px solid rgba(255,255,255,0.07);
+      border-radius:28px 28px 0 0;
+      padding:14px 18px 32px;
+      width:100%;max-width:560px;
+      max-height:88vh;overflow-y:auto;
+    }
+    .mhandle {
+      width:36px;height:4px;border-radius:2px;
+      background:rgba(255,255,255,0.2);
+      margin:0 auto 14px;
+    }
+    .modal-step { display:none; }
+    .modal-step.active { display:block; }
+    .m-emoji { font-size:38px;text-align:center;display:block;margin-bottom:8px; }
+    .m-title { font-size:16px;font-weight:900;color:#fff;text-align:center;margin-bottom:8px;line-height:1.4; }
+    .m-body { font-size:12px;color:rgba(255,255,255,0.4);text-align:center;line-height:1.6;margin-bottom:8px; }
+    .fpbar { height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin:10px 0 4px; }
+    .fpfill { height:100%;background:linear-gradient(90deg,var(--orange),var(--gold));border-radius:3px;width:0%;transition:width 0.1s; }
+    .modal-big-earn {
+      text-align:center;margin:12px 0;
+      background:rgba(255,215,0,0.06);border:1px solid rgba(255,215,0,0.15);
+      border-radius:16px;padding:14px 16px;
+    }
+    .mbe-label { font-size:9px;color:rgba(255,215,0,0.5);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px; }
+    .mbe-num {
+      font-size:clamp(28px,8vw,40px);font-weight:900;color:var(--gold);
+      letter-spacing:-1px;font-variant-numeric:tabular-nums;
+      text-shadow:0 0 30px rgba(255,215,0,0.4);
+      animation:goldpulse 1.5s ease infinite;
+    }
+    @keyframes goldpulse{0%,100%{text-shadow:0 0 20px rgba(255,215,0,0.3)}50%{text-shadow:0 0 50px rgba(255,215,0,0.8),0 0 100px rgba(255,215,0,0.3)}}
+    .mbe-rate { font-size:10px;color:var(--green);margin-top:4px; }
+    .m-next {
+      display:block;width:100%;padding:13px;margin-top:12px;
+      background:linear-gradient(135deg,var(--orange),var(--gold));
+      border:none;border-radius:16px;
+      font-size:15px;font-weight:900;color:#000;cursor:pointer;font-family:inherit;
+    }
+    .collect-amount {
+      font-size:28px;font-weight:900;color:var(--gold);text-align:center;
+      margin:10px 0;font-variant-numeric:tabular-nums;
+    }
+    .fake-input {
+      display:block;width:100%;padding:12px 14px;margin:10px 0;
+      background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
+      border-radius:12px;color:#fff;font-size:14px;font-family:inherit;outline:none;
+    }
+    .fake-input:focus { border-color:rgba(255,215,0,0.4);box-shadow:0 0 0 3px rgba(255,215,0,0.08); }
+    .step4-amount {
+      font-size:24px;font-weight:900;color:var(--gold);text-align:center;
+      margin:6px 0;font-variant-numeric:tabular-nums;
+    }
+    #step4-emoji { font-size:38px;text-align:center;display:block; }
+    .collect-prog-wrap { margin:10px 0 4px; }
+    .collect-prog-bar { height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;margin-bottom:6px; }
+    .collect-prog-label { font-size:10px;color:var(--green);text-align:center; }
+    .transfer-status { font-size:11px;color:rgba(255,255,255,0.3);text-align:center;margin-top:4px; }
+    .reveal-error-box {
+      text-align:center;background:rgba(255,40,40,0.08);
+      border:1px solid rgba(255,40,40,0.2);border-radius:12px;
+      padding:12px;margin-bottom:14px;
+    }
+    .reb-title { font-size:18px;font-weight:900;color:var(--red); }
+    .reb-code { font-size:10px;color:rgba(255,64,64,0.5);font-family:monospace;margin-top:2px; }
+    /* feature list */
+    .reveal-header {
+      font-size:10px;font-weight:700;color:rgba(255,255,255,0.3);
+      letter-spacing:2px;text-transform:uppercase;text-align:center;
+      border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px;margin-bottom:10px;
+    }
+    .feat-grid {
+      display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;
+    }
+    .feat-item {
+      background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+      border-radius:10px;padding:8px 10px;
+    }
+    .feat-name {
+      font-size:10px;font-weight:700;color:var(--orange);margin-bottom:3px;
+    }
+    .feat-desc {
+      font-size:8px;color:rgba(255,255,255,0.3);line-height:1.5;
+    }
+    .reveal-truth {
+      font-size:11px;color:rgba(255,255,255,0.3);text-align:center;
+      background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.08);
+      border-radius:10px;padding:10px 12px;margin-bottom:12px;line-height:1.6;
+    }
+    .reveal-truth strong { color:rgba(0,255,136,0.6); }
+    .modal-my-amount-reveal { color:var(--gold);font-weight:700; }
+    .m-close {
+      display:block;width:100%;padding:13px;
+      background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+      border-radius:16px;font-size:13px;color:rgba(255,255,255,0.5);
+      cursor:pointer;font-family:inherit;
+    }
+
+    /* ===== TOOLTIP ===== */
+    #tooltip {
+      position:fixed;z-index:2000;pointer-events:none;
+      background:rgba(5,5,5,0.97);
+      border:1px solid rgba(255,215,0,0.35);
+      border-radius:14px;padding:12px 16px;
+      max-width:min(250px, calc(100vw - 20px));width:max-content;
+      opacity:0;transition:opacity 0.18s;
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      box-shadow:0 8px 32px rgba(0,0,0,0.7);
+    }
+    #tooltip.show { opacity:1; }
+    .tip-tech {
+      font-size:9px;font-weight:700;color:var(--orange);
+      text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;
+    }
+    .tip-desc { font-size:11px;color:rgba(255,255,255,0.7);line-height:1.55; }
+
+    /* ===== EMAIL FREEZE ===== */
+    #email-freeze {
+      position:fixed;inset:0;z-index:950;
+      background:#000;
+      display:flex;align-items:center;justify-content:center;
+      flex-direction:column;
+      opacity:0;pointer-events:none;
+      transition:opacity 0.2s;
+    }
+    #email-freeze.show { opacity:1;pointer-events:all; }
+    .ef-title {
+      font-size:clamp(32px,9vw,56px);font-weight:900;color:#fff;
+      text-align:center;line-height:1.2;margin-bottom:0;
+      animation:efpop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes efpop { from{transform:scale(0.3) rotate(-5deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+    .ef-sub {
+      font-size:13px;color:rgba(255,255,255,0.4);line-height:1.8;
+      text-align:center;max-width:300px;margin:20px auto 0;
+      opacity:0;transition:opacity 0.5s;
+      white-space:pre-line;
+    }
+    .ef-sub.show { opacity:1; }
+    .ef-btn {
+      margin-top:24px;padding:13px 28px;
+      background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
+      border-radius:14px;color:rgba(255,255,255,0.4);
+      font-size:13px;font-family:inherit;cursor:pointer;
+      opacity:0;transition:opacity 0.5s;
+    }
+    .ef-btn.show { opacity:1; }
   </style>
 </head>
 <body>
 
+<!-- Background layers -->
 <canvas id="matrix"></canvas>
 <canvas id="confetti"></canvas>
+<div id="screen-flash"></div>
+<div id="edge-glow"></div>
+<div id="achievement-stack"></div>
 
-<div class="urgent-banner">
-  🔥 緊急速報 — AIが今この瞬間も秒速5億円を稼ぎ続けています — 残り枠わずか — 今すぐ確認 🔥
+<!-- Live bar -->
+<div class="live-bar" data-tip="社会的証明||閲覧者数を表示することで「みんなが見ている」という安心感と焦りを同時に作ります。数字は架空です。">
+  <span class="live-dot"></span>
+  <span class="live-bar-text">🔴 LIVE — 現在 <strong id="viewers">3,241</strong> 人が閲覧中 — あなたの取り分は今も増えています</span>
 </div>
 
+<!-- Popups -->
 <div id="popup-area"></div>
 
-<div id="milestone">
-  <div class="milestone-inner">
-    <div class="milestone-emoji" id="ms-emoji">🎉</div>
-    <div class="milestone-text" id="ms-text">100億達成！</div>
-    <div class="milestone-sub" id="ms-sub">AIはまだまだ止まりません</div>
+<!-- Milestone overlay -->
+<div id="milestone" data-tip="可変報酬スケジュール||予測できないタイミングで報酬（祝福）が出ることで、スロットマシンと同じドーパミン反応を引き起こします。">
+  <div class="ms-box">
+    <div class="ms-emoji" id="ms-emoji">🎉</div>
+    <div class="ms-text" id="ms-text">10億突破！</div>
+    <div class="ms-sub" id="ms-sub">AIは止まらない</div>
+    <div class="ms-cynic" id="ms-cynic">（あなたの口座には関係ありません）</div>
   </div>
 </div>
 
-<div class="container">
+<!-- Exit trap -->
+<div id="exit-trap">
+  <div class="exit-box" data-tip="損失回避バイアス + 保有効果||「今持っているお金を失う」という恐怖は「同額を得る喜び」の2倍強いことが知られています。この蓄積額はJavaScriptの変数にしか存在しません。">
+    <div class="exit-emoji" id="exit-emoji">😱</div>
+    <div class="exit-title" id="exit-title">待って！！</div>
+    <div class="exit-yield-display" id="exit-yield">¥0</div>
+    <div class="exit-body" id="exit-body">を今すぐ受け取らないと<br>永遠に消えます</div>
+    <button class="exit-stay" onclick="dismissExit()">やっぱり受け取る 🚀</button>
+    <button class="exit-go" onclick="dismissExit()">諦めて離れる</button>
+  </div>
+</div>
 
-  <div class="live-bar">
-    <span class="live-dot"></span>
-    <span>現在 <strong id="viewers" style="color:#fff">2,847</strong> 人がリアルタイムで羨ましがっています</span>
+<!-- Selected flash -->
+<div id="selected-flash"><div class="sf-text" id="sf-text">🏆 あなたが選ばれました</div></div>
+
+<!-- Main screen -->
+<div class="screen">
+
+  <!-- ROW 1: HERO -->
+  <div class="row-hero glass" id="hero-card" data-tip="フラッタリング + 特別感バイアス||「本質を理解しているあなただけ」という言葉で自尊心を刺激し、サイトに留まらせます。">
+    <div class="hero-top">
+      <div class="hero-diag-badge">🏆 AI適性診断 完了</div>
+      <div class="scarcity-chip" id="scarcity-chip" data-tip="偽の希少性||「残り3席」は嘘です。誰でも何度でも見られますが、希少性を感じさせることで即決を迫ります。">残り <span class="seats-num" id="seats">3</span> 席</div>
+    </div>
+    <div class="yield-center" data-tip="保有効果（エンダウメント効果）||まだ受け取っていないお金を「すでに自分のもの」と感じさせます。この金額はJavaScriptの変数の中にしか存在しません。">
+      <div class="yield-label">あなたの取り分（蓄積中）</div>
+      <div class="yield-num" id="my-share">¥0</div>
+      <div class="yield-rate" data-tip="損失回避バイアス||「毎秒増えている」という事実が「今離れると損をする」という焦りを生み出します。">+ <span id="yield-rate-num">¥980</span> / 秒</div>
+      <canvas id="yield-particles" style="position:absolute;inset:0;pointer-events:none;z-index:2;"></canvas>
+    </div>
+    <div class="hero-bottom">
+      <div class="hero-score-small" data-tip="権威バイアス + フラッタリング||94点はこのページを開いた全員に表示されます。あなたが特別なのではなく、全員が特別だと感じさせています。">
+        <div class="hss-num">94</div>
+        <div class="hss-label">AI適性</div>
+      </div>
+      <div class="hero-text-right">
+        <div class="hero-rank">上位 3% 🎯</div>
+        <div class="cap-tag" data-tip="個人化の錯覚||「レバレッジ思考力」などの能力名はランダムに切り替わります。意味はありませんが「自分だけの強み」のように感じさせます。">✦ <span class="cap-word" id="cap-word">レバレッジ思考力</span> ↑↑↑</div>
+      </div>
+    </div>
   </div>
 
-  <h1>🤖 AIが<span class="h1-accent">今この瞬間</span>も<br>あなたの代わりに<span class="h1-accent">稼いでいます</span></h1>
-  <p class="subtitle">あなたが寝ている間も、食べている間も、AIは止まらない</p>
-
-  <div class="ai-models">
-    <span class="model-tag">⚡ Claude 3.5 Sonnet</span>
-    <span class="model-tag">⚡ GPT-4o</span>
-    <span class="model-tag">⚡ Gemini Ultra</span>
-    <span class="model-tag">⚡ LLaMA 3 x1000台</span>
-    <span class="model-tag">⚡ 自己進化AI</span>
-    <span class="model-tag">⚡ 量子AIエンジン</span>
+  <!-- ROW 2: EARNINGS -->
+  <div class="row-earnings glass" data-tip="FOMO（機会損失不安）||巨大な数字（5億円/秒）を見せることで「自分だけ乗り遅れている」という不安を作ります。">
+    <div class="earn-label">▶ 本日のAI総収益（リアルタイム）</div>
+    <div class="earn-num" id="earnings">¥0</div>
+    <div class="earn-sub-row">
+      <span class="earn-usd" id="usd-note">≈ $0 USD</span>
+      <span class="earn-rate">⚡ 5億円/秒</span>
+    </div>
+    <div class="rank-chip" id="rank-chip" data-tip="アンカリング + ラベリング||「アーリーアダプター」というポジティブなラベルを貼ることで「自分は先見の明がある人間だ」という自己認識を操作します。">👑 アーリーアダプター見習い</div>
   </div>
 
-  <div class="earnings-card">
-    <div class="earnings-label">▶ 本日のAI総収益（リアルタイム）</div>
-    <div class="earnings-amount" id="earnings">¥0</div>
-    <div class="usd-note" id="usd-note">≈ $0 USD</div>
-    <div class="per-second">⚡ <span id="per-sec">500,000,000</span>円/秒 で加速中</div>
-    <div class="rank-badge" id="rank-badge">👑 ランク: 無職からの脱出</div>
+  <!-- ROW 3: PERSONA BAR -->
+  <div class="persona-bar" data-tip="個人化の錯覚 + 権威バイアス||でたらめな個人プロファイルです。「このサイトは自分のことを知っている」と感じさせることで信頼感を作ります。">
+    <div class="persona-inner" id="persona-inner">🔍 分析中: 東京在住・28歳・年収480万台・転職検討中（推定）</div>
   </div>
 
-  <div class="stats-grid">
+  <!-- ROW 4: STATS -->
+  <div class="row-stats" data-tip="権威バイアス + 数字の魔法||具体的な数字は信頼性を演出します。「9,999並列AIモデル」「99.97%的中率」はすべて架空です。">
     <div class="stat-card">
-      <div class="stat-value" id="trades">0</div>
-      <div class="stat-label">AI自動取引数</div>
+      <div class="stat-v" id="trades">0</div>
+      <div class="stat-l">HFT/MoE取引数</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value" id="models-count">9,999</div>
-      <div class="stat-label">並列稼働AIモデル</div>
+      <div class="stat-v">9,999</div>
+      <div class="stat-l">並列LLMエージェント</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value">99.97%</div>
-      <div class="stat-label">的中率（人間:50%）</div>
+      <div class="stat-v" id="accuracy-val">99.97%</div>
+      <div class="stat-l">Sharpe補正α精度</div>
     </div>
   </div>
 
-  <div class="goal-section">
+  <!-- ROW 5: GOAL BAR -->
+  <div class="row-goal glass" data-tip="進捗可視化バイアス||進捗バーは「もう少しで達成」という感覚を作り、参加欲求を高めます。目標¥1兆円は最初から達成できません。">
     <div class="goal-label">
-      <span>本日の目標: ¥1兆円</span>
+      <span>本日の目標 ¥1兆円</span>
       <span id="goal-pct">0.000000%</span>
     </div>
-    <div class="progress-bar">
-      <div class="progress-fill" id="progress" style="width:0%"></div>
-    </div>
+    <div class="pbar"><div class="pfill" id="progress" style="width:0%"></div></div>
   </div>
 
-  <div class="ticker-wrap">
-    <span class="ticker" id="ticker">
-      ✅ 田中さん +¥3,200万 &nbsp;&nbsp;&nbsp; ✅ 鈴木さん +¥8,900万 &nbsp;&nbsp;&nbsp; ✅ 山田さん +¥1.2億 &nbsp;&nbsp;&nbsp; ✅ 佐藤さん +¥5,600万 &nbsp;&nbsp;&nbsp; ✅ 中村さん +¥2.4億 &nbsp;&nbsp;&nbsp; ✅ 加藤さん +¥7,700万 &nbsp;&nbsp;&nbsp; ✅ 吉田さん +¥3.1億 &nbsp;&nbsp;&nbsp;
+  <!-- ROW 6: TICKER -->
+  <div class="row-ticker" data-tip="社会的証明 + 成功バイアス||成功事例だけを流すことで「みんなが成功している」という印象を作ります。失敗事例は表示されません。">
+    <span class="ticker">
+      ✅ 田中さん +¥3,200万　✅ 鈴木さん +¥8,900万　✅ 山田さん +¥1.2億　✅ 中村さん 月収100万達成！　✅ 加藤さん「人生が変わりました」　✅ 小林さん「AIに全部任せました」　✅ 伊藤さん 副業で月10万達成！　⚡ AIが0.3ms以内に最適解を導出　🤖 LLMアンサンブルで市場予測精度99.97%　📡 強化学習エージェントが新たな裁定機会を発見　🧠 ディープラーニングモデル更新: パフォーマンス+12.4%向上　✅ 田中さん +¥3,200万　✅ 鈴木さん +¥8,900万　✅ 山田さん +¥1.2億　✅ 中村さん 月収100万達成！　✅ 加藤さん「人生が変わりました」　✅ 小林さん「AIに全部任せました」　✅ 伊藤さん 副業で月10万達成！　⚡ AIが0.3ms以内に最適解を導出　🤖 LLMアンサンブルで市場予測精度99.97%　📡 強化学習エージェントが新たな裁定機会を発見　🧠 ディープラーニングモデル更新: パフォーマンス+12.4%向上
     </span>
   </div>
 
-  <div class="log-box" id="log-box">
-    <div class="log-line">[ システム起動中... 全AIエンジン接続中... ]</div>
+  <!-- ROW 7: LOG -->
+  <div class="row-log" id="log-box" data-tip="リアルタイム演出||ターミナル風のログで「実際にシステムが動いている」という臨場感を作ります。すべてランダム生成のでたらめです。">
+    <span class="log-live">◉ LIVE</span>
+    <div class="log-line">[ システム起動中... ユーザー接続確認中... ]</div>
   </div>
 
-  <div class="hype-box">
-    <div class="hype-msg" id="hype-msg">
-      今すぐ始めれば<span>あなたも</span>この恩恵を受けられます
+  <!-- ROW 8: CTA -->
+  <div class="row-cta">
+    <div class="countdown-wrap">
+      <span class="countdown-label">🔴 この特別オファー終了まで</span>
+      <span class="countdown-num" id="countdown">04:59</span>
     </div>
+    <button class="cta-btn" id="cta-btn" onclick="ctaClick()">
+      🔒 <span id="cta-amount">¥0</span> を今すぐ無料で受け取る
+    </button>
+    <div class="cta-secure">🔐 SSL暗号化通信　✓ 個人情報保護法準拠　✓ 登録0円</div>
+    <div class="sunk-cost">⏱ 閲覧時間: <span id="sc-secs">0</span>秒</div>
   </div>
 
-  <p class="disclaimer">
-    ※ このサイトはジョーク・風刺サイトです。実際にAIで秒速5億円を稼ぐことはできません。<br>
-    投資詐欺には十分ご注意ください。AIも人間も損します。
-  </p>
+</div><!-- /.screen -->
+
+<!-- MODAL -->
+<div id="cta-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-sheet">
+    <div class="mhandle"></div>
+
+    <!-- STEP 1 -->
+    <div class="modal-step active" id="step-1">
+      <div class="m-emoji">🤖</div>
+      <div class="m-title">AIがあなたの取り分を<br>計算しています...</div>
+      <div class="m-body">
+        あなたのページ滞在時間をもとに<br>
+        <span style="color:var(--green);font-weight:700">蓄積された取り分</span>を確認しています…
+        <div class="fpbar"><div class="fpfill" id="fake-prog"></div></div>
+        <span id="fake-prog-txt" style="font-size:10px;color:var(--green)">計算中... 0%</span>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="modal-step" id="step-2">
+      <div class="m-emoji">🎉</div>
+      <div class="m-title" style="font-size:15px">おめでとうございます！<br>受け取れます</div>
+      <div class="modal-big-earn">
+        <div class="mbe-label">あなたの確定取り分</div>
+        <div class="mbe-num" id="modal-my-amount">¥0</div>
+        <div class="mbe-rate" id="mbe-ticking">+¥980/秒 まだ増えています…</div>
+      </div>
+      <button class="m-next" id="step2-btn" onclick="goStep(3)">今すぐ受け取る →</button>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="modal-step" id="step-3">
+      <div class="m-emoji">💰</div>
+      <div class="m-title">受け取り確認</div>
+      <div class="m-body">以下の金額を振り込みます</div>
+      <div class="collect-amount" id="modal-my-amount-2">¥0</div>
+      <input class="fake-input" type="email" placeholder="📧 メールアドレスを入力" autocomplete="off" onfocus="triggerFreeze()" oninput="triggerFreeze()">
+      <button class="m-next" id="step3-btn" onclick="goStep(4)">受け取る →</button>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="modal-step" id="step-4">
+      <span class="m-emoji" id="step4-emoji">⏳</span>
+      <div class="m-title" id="step4-title">処理中...</div>
+      <div class="step4-amount" id="modal-my-amount-3">¥0</div>
+      <div class="collect-prog-wrap">
+        <div class="collect-prog-bar"><div id="collect-prog" style="width:0%;height:100%;background:linear-gradient(90deg,var(--orange),var(--gold));border-radius:4px;transition:width 0.1s;"></div></div>
+        <div class="collect-prog-label" id="collect-prog-label">認証中...</div>
+      </div>
+      <div class="transfer-status" id="transfer-status">口座情報を確認中...</div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="modal-step" id="step-5">
+      <div class="reveal-error-box">
+        <div class="reb-title">振込失敗 ⚠️</div>
+        <div class="reb-code">ERROR: ACCOUNT_NOT_REAL · ¥<span class="modal-my-amount-reveal">0</span> は存在しません</div>
+      </div>
+      <div class="reveal-header">— このサイトで使われた心理操作テクニック —</div>
+      <div class="feat-grid">
+        <div class="feat-item"><div class="feat-name">フラッタリング</div><div class="feat-desc">「上位3%」「AI適性94点」は全員に表示。自尊心を刺激し離脱を防ぐ</div></div>
+        <div class="feat-item"><div class="feat-name">社会的証明</div><div class="feat-desc">「3,241人閲覧中」「田中さんが受け取った」はすべて架空の数字</div></div>
+        <div class="feat-item"><div class="feat-name">偽の希少性</div><div class="feat-desc">「残り3席」は嘘。誰でも無制限にアクセス可能</div></div>
+        <div class="feat-item"><div class="feat-name">保有効果</div><div class="feat-desc">蓄積する金額をJSの変数で「自分のもの」と感じさせる</div></div>
+        <div class="feat-item"><div class="feat-name">損失回避バイアス</div><div class="feat-desc">「今逃すと消える」。得る喜びより失う恐怖が2倍強い心理</div></div>
+        <div class="feat-item"><div class="feat-name">FOMO</div><div class="feat-desc">5億円/秒という数字で「乗り遅れている」焦りを生む</div></div>
+        <div class="feat-item"><div class="feat-name">個人化の錯覚</div><div class="feat-desc">でたらめなプロファイルで「知られている」信頼感を作る</div></div>
+        <div class="feat-item"><div class="feat-name">アンカリング</div><div class="feat-desc">「アーリーアダプター」ラベルで自己認識を先に固定する</div></div>
+        <div class="feat-item"><div class="feat-name">可変報酬</div><div class="feat-desc">不規則なアチーブメントはスロットと同じドーパミン機構</div></div>
+        <div class="feat-item"><div class="feat-name">サンクコスト</div><div class="feat-desc">閲覧秒数表示で「ここまで来たから」という心理を作る</div></div>
+        <div class="feat-item"><div class="feat-name">人工的な締め切り</div><div class="feat-desc">タイマーは0でリセット。「今すぐ」の圧力は作り物</div></div>
+        <div class="feat-item"><div class="feat-name">ザイオンス効果</div><div class="feat-desc">繰り返し見るほど押したくなる。接触回数が親近感を作る</div></div>
+        <div class="feat-item"><div class="feat-name">行動コミットメント</div><div class="feat-desc">ボタンを2回押させることで「登録する人間」に変えていく</div></div>
+        <div class="feat-item"><div class="feat-name">信頼シグナル</div><div class="feat-desc">🔐SSL・個人情報保護は飾り。実際の安全性とは無関係</div></div>
+      </div>
+      <div class="reveal-truth">
+        AIで本当に稼いでいる人は、エンジニア・デザイナー・ライターとして<strong>AIを道具として使い</strong>、地道に働いています。
+      </div>
+      <button class="m-close" onclick="closeModal()">閉じる（ちゃんと働きます）</button>
+    </div>
+
+  </div>
 </div>
 
+<!-- Email freeze overlay -->
+<div id="email-freeze">
+  <div class="ef-title">あなたは<br>おかしいです</div>
+  <div class="ef-sub" id="ef-sub"></div>
+  <button class="ef-btn" id="ef-btn" onclick="dismissFreeze()">...そうですね</button>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip"><div class="tip-tech" id="tip-tech"></div><div class="tip-desc" id="tip-desc"></div></div>
+
 <script>
-/* ====== MATRIX ====== */
-(function() {
-  const c = document.getElementById('matrix');
-  const ctx = c.getContext('2d');
-  let drops;
-  function init() {
-    c.width = window.innerWidth; c.height = window.innerHeight;
-    drops = Array(Math.floor(c.width/14)).fill(0);
-  }
-  function draw() {
-    ctx.fillStyle = 'rgba(0,0,0,0.05)';
-    ctx.fillRect(0,0,c.width,c.height);
-    ctx.fillStyle = '#ff4500'; ctx.font = '13px monospace';
-    drops.forEach((y,i) => {
-      ctx.fillText(String.fromCharCode(0x30A0 + Math.random()*96), i*14, y*14);
-      if (y*14 > c.height && Math.random() > 0.975) drops[i] = 0; else drops[i]++;
-    });
-  }
-  init(); window.addEventListener('resize', init); setInterval(draw, 55);
+/* ===== MATRIX ===== */
+(function(){
+  const c=document.getElementById('matrix'),ctx=c.getContext('2d');let d;
+  function init(){c.width=innerWidth;c.height=innerHeight;d=Array(Math.floor(c.width/14)).fill(0);}
+  function draw(){ctx.fillStyle='rgba(0,0,0,0.05)';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#ff4500';ctx.font='13px monospace';d.forEach((y,i)=>{ctx.fillText(String.fromCharCode(0x30A0+Math.random()*96),i*14,y*14);if(y*14>c.height&&Math.random()>0.975)d[i]=0;else d[i]++;});}
+  init();addEventListener('resize',init);setInterval(draw,55);
 })();
 
-/* ====== CONFETTI ====== */
-const confCanvas = document.getElementById('confetti');
-const cctx = confCanvas.getContext('2d');
-confCanvas.width = window.innerWidth; confCanvas.height = window.innerHeight;
-window.addEventListener('resize', () => { confCanvas.width = window.innerWidth; confCanvas.height = window.innerHeight; });
+/* ===== CONFETTI ===== */
+const cc=document.getElementById('confetti'),cctx=cc.getContext('2d');
+function resizeCC(){cc.width=innerWidth;cc.height=innerHeight;}resizeCC();addEventListener('resize',resizeCC);
+let pts=[];
+function spawnConfetti(n=60){for(let i=0;i<n;i++)pts.push({x:Math.random()*cc.width,y:-10,vx:(Math.random()-.5)*5,vy:Math.random()*3+2,r:Math.random()*5+2,rot:Math.random()*360,rv:(Math.random()-.5)*8,c:['#ffd700','#ff4500','#00ff88','#ff00cc','#00cfff'][Math.floor(Math.random()*5)]});}
+function drawCC(){cctx.clearRect(0,0,cc.width,cc.height);pts=pts.filter(p=>p.y<cc.height+20);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.rot+=p.rv;cctx.save();cctx.translate(p.x,p.y);cctx.rotate(p.rot*Math.PI/180);cctx.fillStyle=p.c;cctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*1.8);cctx.restore();});requestAnimationFrame(drawCC);}
+drawCC();
 
-let particles = [];
-function spawnConfetti(n=60) {
-  for (let i=0; i<n; i++) {
-    particles.push({
-      x: Math.random()*confCanvas.width,
-      y: -10,
-      vx: (Math.random()-0.5)*6,
-      vy: Math.random()*4+2,
-      r: Math.random()*6+3,
-      color: ['#ffd700','#ff4500','#00ff41','#ff00ff','#00cfff'][Math.floor(Math.random()*5)],
-      rot: Math.random()*360,
-      rotV: (Math.random()-0.5)*10
-    });
+/* ===== YIELD PARTICLES ===== */
+(function(){
+  const canvas=document.getElementById('yield-particles');
+  const ctx=canvas.getContext('2d');
+  let particles=[];
+  function resize(){
+    const r=canvas.parentElement.getBoundingClientRect();
+    canvas.width=r.width||300;canvas.height=r.height||80;
   }
-}
-function drawConfetti() {
-  cctx.clearRect(0,0,confCanvas.width,confCanvas.height);
-  particles = particles.filter(p => p.y < confCanvas.height+20);
-  particles.forEach(p => {
-    p.x += p.vx; p.y += p.vy; p.rot += p.rotV;
-    cctx.save();
-    cctx.translate(p.x,p.y); cctx.rotate(p.rot*Math.PI/180);
-    cctx.fillStyle = p.color;
-    cctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*2);
-    cctx.restore();
-  });
-  requestAnimationFrame(drawConfetti);
-}
-drawConfetti();
+  resize();
+  function spawn(){
+    if(canvas.width===0)return;
+    particles.push({x:canvas.width/2+(Math.random()-.5)*60,y:canvas.height-10,vx:(Math.random()-.5)*1.2,vy:-(Math.random()*1.5+0.5),alpha:1,size:Math.random()*8+7});
+  }
+  function tick(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles=particles.filter(p=>p.alpha>0.02);
+    particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.alpha-=0.015;ctx.save();ctx.globalAlpha=p.alpha;ctx.fillStyle='#ffd700';ctx.font=`bold ${p.size}px -apple-system`;ctx.textAlign='center';ctx.fillText('¥',p.x,p.y);ctx.restore();});
+    requestAnimationFrame(tick);
+  }
+  tick();
+  setInterval(spawn,400);
+  addEventListener('resize',resize);
+})();
 
-/* ====== EARNINGS ====== */
-const RATE = 500_000_000;
-const GOAL = 1_000_000_000_000;
-let startTime = Date.now();
-let milestones = [
-  { val: 1e9,   emoji: '🎉', text: '10億突破！！', sub: 'もう普通の人の生涯収入を超えました' },
-  { val: 1e10,  emoji: '🚀', text: '100億突破！！', sub: 'ちょっとした企業の年商です' },
-  { val: 1e11,  emoji: '💎', text: '1000億突破！！', sub: 'もはや国家レベル' },
-  { val: 5e11,  emoji: '👑', text: '5000億突破！！', sub: 'トヨタの売上の1/10' },
-  { val: 1e12,  emoji: '🌍', text: '1兆円達成！！！', sub: '本日の目標完了。AIに感謝。' },
+/* ===== WEB AUDIO ===== */
+let audioCtx=null;
+function ensureAudio(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+}
+// Resume on any user interaction so browser autoplay policy allows sound
+['click','touchstart','keydown','pointerdown'].forEach(e=>
+  document.addEventListener(e,ensureAudio,{passive:true})
+);
+function playTone(freq,dur,type='sine',vol=0.08,delay=0){
+  if(!audioCtx||audioCtx.state!=='running')return;
+  try{
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.connect(g);g.connect(audioCtx.destination);
+    o.frequency.value=freq;o.type=type;
+    const t=audioCtx.currentTime+delay;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    o.start(t);o.stop(t+dur+0.05);
+  }catch(e){}
+}
+function playCoin(){playTone(1047,0.08,'triangle',0.06);}
+function playNotif(){playTone(880,0.06,'sine',0.05);playTone(1320,0.08,'sine',0.05,0.07);}
+function playAchievement(){[523,659,784,1047].forEach((f,i)=>playTone(f,0.12,'sine',0.07,i*0.09));}
+function playReveal(){[523,440,349,262].forEach((f,i)=>playTone(f,0.18,'triangle',0.06,i*0.12));}
+function playBuild(){
+  if(!audioCtx||audioCtx.state!=='running')return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.connect(g);g.connect(audioCtx.destination);
+  o.type='sine';o.frequency.setValueAtTime(200,audioCtx.currentTime);
+  o.frequency.linearRampToValueAtTime(800,audioCtx.currentTime+3.5);
+  g.gain.setValueAtTime(0.04,audioCtx.currentTime);
+  g.gain.linearRampToValueAtTime(0.001,audioCtx.currentTime+3.5);
+  o.start();o.stop(audioCtx.currentTime+3.6);
+}
+
+/* ===== SCREEN FLASH ===== */
+function flashScreen(color){
+  const el=document.getElementById('screen-flash');
+  if(color)el.style.background=color;
+  el.classList.add('active');
+  setTimeout(()=>el.classList.remove('active'),600);
+}
+
+/* ===== EDGE GLOW ===== */
+function intensifyGlow(){
+  const el=document.getElementById('edge-glow');
+  el.classList.add('intense');
+  setTimeout(()=>el.classList.remove('intense'),2000);
+}
+
+/* ===== SCREEN SHAKE ===== */
+function shakeScreen(){
+  document.body.style.animation='shake 0.3s ease';
+  setTimeout(()=>document.body.style.animation='',350);
+}
+
+/* ===== ACHIEVEMENTS ===== */
+const shownAchievements=new Set();
+function showAchievement(msg){
+  if(shownAchievements.has(msg))return;
+  shownAchievements.add(msg);
+  const div=document.createElement('div');div.className='achievement-toast';div.textContent=msg;
+  document.getElementById('achievement-stack').appendChild(div);
+  playAchievement();
+  setTimeout(()=>div.remove(),3000);
+}
+
+/* ===== SELECTED FLASH ===== */
+function showSelectedFlash(msg){
+  const el=document.getElementById('selected-flash');
+  document.getElementById('sf-text').textContent=msg||'🏆 あなたが選ばれました';
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),1400);
+}
+setTimeout(()=>showSelectedFlash('🏆 あなたが選ばれました'),8000);
+
+/* ===== MY SHARE COUNTER ===== */
+const BASE_RATE=980;
+let currentRate=BASE_RATE;
+let myShare=0;
+let myShareSnapshot=0;
+const pageStartTime=Date.now();
+const rateEl=document.getElementById('yield-rate-num');
+
+// Rate variation: every 3-8s, rate spikes or dips for 2s then returns
+function varyRate(){
+  const spike=Math.random()<0.6; // 60% chance of spike
+  const multiplier=spike?(1.5+Math.random()*4):(0.2+Math.random()*0.5);
+  currentRate=Math.round(BASE_RATE*multiplier);
+  const rateStr='¥'+currentRate.toLocaleString();
+  if(rateEl)rateEl.textContent=rateStr;
+  if(spike&&multiplier>3){
+    flashScreen('rgba(255,215,0,0.18)');
+    showAchievement('⚡ AIスパイク！ +¥'+currentRate.toLocaleString()+'/秒');
+  }
+  // return to base after 1.5-2.5s
+  setTimeout(()=>{
+    currentRate=BASE_RATE;
+    if(rateEl)rateEl.textContent='¥'+BASE_RATE.toLocaleString();
+  },1500+Math.random()*1000);
+  // schedule next variation
+  setTimeout(varyRate,3000+Math.random()*5000);
+}
+setTimeout(varyRate,4000);
+
+setInterval(()=>{
+  myShare+=currentRate;
+  const fmt='¥'+myShare.toLocaleString();
+  document.getElementById('my-share').textContent=fmt;
+  document.getElementById('cta-amount').textContent=fmt;
+  const yel=document.getElementById('my-share');
+  yel.classList.add('beat');
+  setTimeout(()=>yel.classList.remove('beat'),120);
+  ensureAudio();playCoin();
+  if(myShare>=BASE_RATE*10&&myShare<BASE_RATE*10+currentRate)showAchievement('💰 取り分¥'+myShare.toLocaleString()+'突破！');
+  if(myShare>=50000&&myShare<50000+currentRate)showAchievement('🔥 取り分¥50,000突破！');
+  if(myShare>=100000&&myShare<100000+currentRate)showAchievement('💎 取り分¥100,000突破！');
+  if(myShare>=300000&&myShare<300000+currentRate)showAchievement('🚀 取り分¥300,000突破！');
+},1000);
+
+/* accuracy flicker */
+setInterval(()=>{
+  const el=document.getElementById('accuracy-val');
+  if(el)el.textContent=(99.9+Math.random()*0.097).toFixed(3)+'%';
+},1700);
+
+/* ===== SUNK COST ===== */
+setInterval(()=>{
+  const secs=Math.floor((Date.now()-pageStartTime)/1000);
+  const el=document.getElementById('sc-secs');if(el)el.textContent=secs;
+  if(secs===10)showAchievement('⏱️ 10秒滞在達成');
+  if(secs===30)showAchievement('👀 30秒滞在 — もうコミット済みです');
+  if(secs===60)showAchievement('🎯 1分滞在 — サンクコスト効果が最大化');
+},1000);
+
+/* ===== COUNTDOWN ===== */
+let cdSecs=299;
+setInterval(()=>{
+  cdSecs--;if(cdSecs<=0)cdSecs=299;
+  const m=Math.floor(cdSecs/60),s=cdSecs%60;
+  const el=document.getElementById('countdown');
+  if(el){
+    el.textContent=(m+'').padStart(2,'0')+':'+(s+'').padStart(2,'0');
+    el.style.color='var(--red)';
+    if(cdSecs<=10)el.style.animation='scarepulse 0.4s ease infinite';
+    else el.style.animation='';
+  }
+},1000);
+
+/* ===== SCARCITY ===== */
+let seats=3;
+function decrementSeats(){
+  if(seats<=1)return;seats--;
+  document.getElementById('seats').textContent=seats;
+  const chip=document.getElementById('scarcity-chip');chip.classList.add('urgent');
+  showSelectedFlash(seats===1?'🚨 残り1席のみ！':'⚠️ 残り'+seats+'席になりました');
+  flashScreen('rgba(255,40,40,0.12)');
+  setTimeout(()=>{if(seats>1)chip.classList.remove('urgent');},4000);
+}
+function scheduleDecrement(){
+  if(seats<=1)return;
+  const delay=20000+Math.random()*40000;
+  setTimeout(()=>{decrementSeats();scheduleDecrement();},delay);
+}
+scheduleDecrement();
+
+/* ===== EXIT INTENT ===== */
+const exitMessages=[
+  {emoji:'😱',title:'待って！！'},
+  {emoji:'🥺',title:'本当に諦めるんですか？'},
+  {emoji:'😤',title:'今逃したら後悔します'},
 ];
-let shownMilestones = new Set();
+let exitCount=0;
+function showExitTrap(){
+  if(exitCount>=exitMessages.length)return;
+  const m=exitMessages[exitCount++];
+  document.getElementById('exit-emoji').textContent=m.emoji;
+  document.getElementById('exit-title').textContent=m.title;
+  document.getElementById('exit-yield').textContent='¥'+myShare.toLocaleString();
+  document.getElementById('exit-trap').classList.add('show');
+  if(navigator.vibrate)navigator.vibrate([50,30,50]);
+  flashScreen('rgba(255,40,40,0.1)');
+}
+function dismissExit(){document.getElementById('exit-trap').classList.remove('show');}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')showExitTrap();});
+document.addEventListener('mouseleave',e=>{if(e.clientY<30)showExitTrap();});
 
-const ranks = [
-  [0,       '👑 ランク: 無職からの脱出'],
-  [1e8,     '💼 ランク: 副業成功者'],
-  [1e9,     '🚗 ランク: フェラーリ購入可能'],
-  [1e10,    '🏠 ランク: 六本木ヒルズ住民'],
-  [1e11,    '✈️ ランク: プライベートジェット保有'],
-  [5e11,    '🏝️ ランク: 島を買える'],
-  [1e12,    '🌍 ランク: 国家予算レベル'],
+/* ===== PERSONA BAR ===== */
+const personaMsgs=[
+  '🔍 分析中: 東京在住・28歳・年収480万台・転職検討中（推定）',
+  '📱 デバイス解析: iOS・バッテリー72%・Wi-Fi・夜間閲覧パターン',
+  '🧠 心理プロファイル: 向上心が高く・現状に少し不満・「自分は賢い」と自覚',
+  '💡 あなた専用メッセージを生成中...',
+  '📊 類似ユーザー847人中: 収益確認済み94%',
+  '⚡ あなたの「本質理解スコア」更新: 94→95',
+  '🎯 「本質を理解している人」は全体の上位3%です',
+  '🤖 GPT-5o × Claude 4 アンサンブル最適化: あなたに適合済み',
+  '📈 強化学習モデルがあなたのリスク許容度を学習完了',
+  '🧬 ベイズ最適化エンジン: あなたのポートフォリオ構成を計算中...',
+  '⚛️ マルチエージェントAI: 9,999並列スレッドで市場分析中',
+  '🔬 トランスフォーマーアーキテクチャ v4.1: 次の最適解を推論中',
+  '🌐 ゼロ知識証明 × フェデレーテッドラーニング: プライバシー保護収益化完了',
+  '🔐 ホモモーフィック暗号化レイヤー: あなたの資産を量子耐性で保護中',
+  '🧮 確率的勾配降下法 × アダプティブモーメント推定: 利回り最大化',
+  '📡 エッジAIノード#7,291があなたの行動パターンをオンデバイス学習中',
+  '🔮 生成AIによるカウンターファクチュアル収益予測: +¥'+(Math.floor(Math.random()*900+100)*10000).toLocaleString()+'（仮定）',
+  '⚡ スパース混合エキスパートモデル(MoE)がポートフォリオ最適化中...',
+  '🧬 RAG×グラフニューラルネットワーク: 市場構造の因果推論完了',
+  '🌀 拡散モデルで生成した投資シナリオ: シャープレシオ 4.72 達成予測',
 ];
+let personaIdx=0;
+setInterval(()=>{
+  const el=document.getElementById('persona-inner');
+  el.style.opacity='0';
+  setTimeout(()=>{personaIdx=(personaIdx+1)%personaMsgs.length;el.textContent=personaMsgs[personaIdx];el.style.opacity='1';},300);
+},4000);
 
-const hypes = [
-  '今すぐ始めれば<span>あなたも</span>この恩恵を受けられます',
-  '<span>眠っている間も</span>AIが稼ぎ続けます',
-  'もうサラリーマンには<span>戻れません</span>',
-  '<span>1秒後</span>にもまた5億増えます',
-  '今この瞬間も<span>ライバルは稼いでいます</span>',
-  'AIは<span>疲れません</span>。休みません。止まりません。',
-  '<span>あなたの上司の年収</span>を1秒で超えました',
-  'もはや<span>宝くじより確実</span>かもしれません（冗談です）',
-];
+/* ===== CAP TAG ROTATOR ===== */
+const capWords=['レバレッジ思考力','本質把握力','スケーラビリティ感覚','パッシブインカム適性','知的好奇心係数','アーリーアダプター指数','非線形成長理解度','AIシナジー指標','複利感度スコア','メタ認知レベル','アルゴリズム親和性','第一原理思考力','ネットワーク効果感度','トークン最適化能力','確率的思考スコア','指数関数的成長感度','分散型意思決定力','LLM活用適性'];
+let capIdx=0;
+setInterval(()=>{
+  const el=document.getElementById('cap-word');el.classList.add('leaving');
+  setTimeout(()=>{capIdx=(capIdx+1)%capWords.length;el.textContent=capWords[capIdx];el.classList.remove('leaving');},300);
+},2800);
 
-function fmt(n) {
-  if (n >= 1e12) return '¥' + (n/1e12).toFixed(3) + '兆';
-  if (n >= 1e8)  return '¥' + (n/1e8).toFixed(2) + '億';
-  return '¥' + Math.floor(n).toLocaleString();
+/* ===== MODAL ===== */
+function ctaClick(){
+  ensureAudio();
+  if(navigator.vibrate)navigator.vibrate([20,10,20,10,40]);
+  flashScreen('rgba(255,215,0,0.15)');
+  openModal();
 }
-function fmtFull(n) {
-  if (n >= 1e12) return '¥' + (n/1e12).toFixed(4) + '兆';
-  if (n >= 1e8)  return '¥' + (n/1e8).toFixed(4) + '億';
-  return '¥' + Math.floor(n).toLocaleString();
+function openModal(){
+  myShareSnapshot=myShare;
+  document.getElementById('cta-modal').classList.add('show');
+  goStep(1);
+  animateCollect1();
 }
-function fmtTrades(n) {
-  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
-  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
-  return n.toString();
-}
+function closeModal(){document.getElementById('cta-modal').classList.remove('show');}
 
-/* Log templates */
-const names = ['田中','鈴木','山田','佐藤','中村','加藤','吉田','渡辺','伊藤','小林'];
-const logTpls = [
-  (a) => `[AI] 仮想通貨アービトラージ → <span class="amount">+¥${a}</span> <span class="tag">#CRYPTO</span>`,
-  (a) => `[AI] 高頻度株取引(0.1ms確定) → <span class="amount">+¥${a}</span> <span class="tag">#HFT</span>`,
-  (a) => `[AI] 為替FX自動売買 → <span class="amount">+¥${a}</span> <span class="tag">#FX</span>`,
-  (a) => `[AI] NFTフリップ完了 → <span class="amount">+¥${a}</span> <span class="tag">#NFT</span>`,
-  (a) => `[AI] 深層学習予測的中率100% → <span class="amount">+¥${a}</span> <span class="tag">#ML</span>`,
-  (a) => `[AI] アフィリエイト自動生成×10000記事 → <span class="amount">+¥${a}</span> <span class="tag">#passive</span>`,
-  (a) => `[AI] 量子最適化取引完了 → <span class="big">+¥${a}（大型取引）</span> <span class="tag">#quantum</span>`,
-  (a) => `[AI] グローバル先物ヘッジ → <span class="amount">+¥${a}</span> <span class="tag">#futures</span>`,
-  (a,n) => `✅ ${n}さん AI収益確認 → <span class="amount">+¥${a}</span>`,
-];
-
-/* Popup notifications */
-const popupArea = document.getElementById('popup-area');
-const popupNames = ['田中さん','鈴木さん','山田さん (大阪)','佐藤さん','中村さん (東京)','加藤さん (福岡)','吉田さん','渡辺さん (札幌)'];
-let popupIdx = 0;
-
-function showPopup() {
-  const name = popupNames[popupIdx++ % popupNames.length];
-  const amt = '¥' + (Math.floor(Math.random()*900+100)*100000).toLocaleString();
-  const div = document.createElement('div');
-  div.className = 'popup';
-  div.innerHTML = `🎊 <span class="name">${name}</span> が今<span class="amount">${amt}</span>を受け取りました`;
-  popupArea.appendChild(div);
-  setTimeout(() => div.remove(), 4200);
+function goStep(n){
+  document.querySelectorAll('.modal-step').forEach(el=>el.classList.remove('active'));
+  document.getElementById('step-'+n).classList.add('active');
+  if(n===4){animateCollect4();}
 }
 
-/* Milestone */
-const msOverlay = document.getElementById('milestone');
-function showMilestone(m) {
-  document.getElementById('ms-emoji').textContent = m.emoji;
-  document.getElementById('ms-text').textContent = m.text;
-  document.getElementById('ms-sub').textContent = m.sub;
-  msOverlay.classList.add('show');
-  spawnConfetti(150);
-  setTimeout(() => msOverlay.classList.remove('show'), 3500);
-}
-
-/* Rank */
-function getrank(n) {
-  let r = ranks[0][1];
-  for (const [v,label] of ranks) { if (n >= v) r = label; }
-  return r;
-}
-
-let lastLog = 0, lastPopup = 0, lastHype = 0, lastFlash = 0, lastViewer = 0;
-let hypeIdx = 0;
-const earningsEl = document.getElementById('earnings');
-const usdEl = document.getElementById('usd-note');
-const tradesEl = document.getElementById('trades');
-const progressEl = document.getElementById('progress');
-const goalPctEl = document.getElementById('goal-pct');
-const logBox = document.getElementById('log-box');
-const rankEl = document.getElementById('rank-badge');
-const viewersEl = document.getElementById('viewers');
-const hypeEl = document.getElementById('hype-msg');
-
-function update() {
-  const now = Date.now();
-  const elapsed = (now - startTime) / 1000;
-  const total = elapsed * RATE;
-  const trades = Math.floor(elapsed * 12000 + elapsed * elapsed * 5);
-
-  earningsEl.textContent = fmtFull(total);
-  usdEl.textContent = '≈ $' + Math.floor(total * 0.0067).toLocaleString() + ' USD';
-  tradesEl.textContent = fmtTrades(trades);
-  rankEl.textContent = getrank(total);
-
-  const pct = Math.min((total / GOAL) * 100, 100);
-  progressEl.style.width = pct + '%';
-  goalPctEl.textContent = pct.toFixed(6) + '%';
-
-  // Milestones
-  milestones.forEach(m => {
-    if (!shownMilestones.has(m.val) && total >= m.val) {
-      shownMilestones.add(m.val);
-      showMilestone(m);
+function animateCollect1(){
+  let p=0;
+  const bar=document.getElementById('fake-prog'),txt=document.getElementById('fake-prog-txt');
+  const lbs=['計算中...','収益確認中...','金額確定！'];
+  const iv=setInterval(()=>{
+    p+=Math.random()*4+1;
+    if(p>=100){p=100;clearInterval(iv);
+      setTimeout(()=>{
+        const fmt='¥'+myShareSnapshot.toLocaleString();
+        goStep(2);
+        document.getElementById('modal-my-amount').textContent=fmt;
+        document.getElementById('modal-my-amount-2').textContent=fmt;
+        document.getElementById('modal-my-amount-3').textContent=fmt;
+        document.querySelectorAll('.modal-my-amount-reveal').forEach(el=>el.textContent=myShareSnapshot.toLocaleString());
+        const s2btn=document.getElementById('step2-btn');if(s2btn)s2btn.textContent='今すぐ受け取る '+fmt+' →';
+        const s3btn=document.getElementById('step3-btn');if(s3btn)s3btn.textContent='受け取る '+fmt+' →';
+        spawnConfetti(150);flashScreen('rgba(255,215,0,0.25)');
+        playAchievement();intensifyGlow();
+        if(navigator.vibrate)navigator.vibrate([30,20,30,20,80]);
+      },400);
     }
-  });
+    bar.style.width=p+'%';
+    txt.textContent=lbs[Math.min(Math.floor(p/34),2)]+' '+Math.floor(p)+'%';
+  },60);
+}
 
-  // Log
-  if (now - lastLog > 180) {
-    const a = Math.floor(RATE * 0.18 * (0.3 + Math.random() * 1.4));
-    const tpl = logTpls[Math.floor(Math.random() * logTpls.length)];
-    const n = names[Math.floor(Math.random() * names.length)];
-    const line = document.createElement('div');
-    line.className = 'log-line';
-    line.innerHTML = tpl('¥' + a.toLocaleString(), n);
-    logBox.insertBefore(line, logBox.firstChild);
-    while (logBox.children.length > 22) logBox.removeChild(logBox.lastChild);
-    lastLog = now;
+function animateCollect4(){
+  let p=0;
+  playBuild();
+  const bar=document.getElementById('collect-prog');
+  const lbl=document.getElementById('collect-prog-label');
+  const status=document.getElementById('transfer-status');
+  const lbls=['認証中...','残高確認中...','転送中...','完了間近...'];
+  const statuses=['口座情報を確認中...','セキュリティチェック中...','残高を確認中...','転送処理中...','振込完了直前...'];
+  let lastLbl=0,lastSt=0;
+  const iv=setInterval(()=>{
+    p+=Math.random()*1.2+0.3;
+    if(p>=100){p=100;clearInterval(iv);
+      setTimeout(()=>{
+        document.getElementById('step4-emoji').textContent='✅';
+        document.getElementById('step4-title').textContent='振込完了！';
+        flashScreen('rgba(0,255,136,0.2)');
+        if(navigator.vibrate)navigator.vibrate([100]);
+        setTimeout(()=>{goStep(5);flashScreen('rgba(255,40,40,0.2)');playReveal();shakeScreen();},800);
+      },400);
+    }
+    bar.style.width=p+'%';
+    const li=Math.min(Math.floor(p/25),lbls.length-1);if(li!==lastLbl){lbl.textContent=lbls[li];lastLbl=li;}
+    const si=Math.min(Math.floor(p/20),statuses.length-1);if(si!==lastSt){status.textContent=statuses[si];lastSt=si;}
+  },80);
+}
+
+/* ===== EMAIL FREEZE ===== */
+let freezeShown=false;
+function triggerFreeze(){
+  if(freezeShown)return;
+  freezeShown=true;
+  document.getElementById('email-freeze').classList.add('show');
+  flashScreen('rgba(255,0,0,0.4)');
+  if(navigator.vibrate)navigator.vibrate([100,50,100,50,200]);
+  setTimeout(()=>{
+    const sub=document.getElementById('ef-sub');
+    sub.textContent='メールアドレスを入力しようとしましたね。\n\nこれが詐欺サイトの個人情報収集の手口です。\n実際のサイトでは、ここで口座番号・氏名・住所を\n「自然な流れで」入力させます。';
+    sub.classList.add('show');
+    document.getElementById('ef-btn').classList.add('show');
+  },1200);
+}
+function dismissFreeze(){
+  document.getElementById('email-freeze').classList.remove('show');
+}
+
+/* ===== EARNINGS COUNTER ===== */
+const RATE=500_000_000,GOAL=1e12,startTimeE=Date.now();
+let shownMS=new Set();
+const milestones=[
+  {val:1e9,emoji:'🎉',text:'10億突破！',sub:'生涯収入を超えました',cynic:'（あなたには一円も入っていません）'},
+  {val:1e10,emoji:'🚀',text:'100億突破！',sub:'ちょっとした企業の年商',cynic:'（JavaScriptの変数の中だけで）'},
+  {val:1e11,emoji:'💎',text:'1000億突破！',sub:'もはや国家レベル',cynic:'（リロードしたらゼロに戻ります）'},
+  {val:5e11,emoji:'👑',text:'5000億突破！',sub:'トヨタの売上の1/10',cynic:'（console.logしたら消えます）'},
+  {val:1e12,emoji:'🌍',text:'1兆円達成！',sub:'本日の目標完了',cynic:'（ページを閉じると消えます）'},
+];
+const ranks=[[0,'👑 アーリーアダプター見習い'],[1e8,'💼 副業成功者（画面の中で）'],[1e9,'🚗 フェラーリ購入可能（無理）'],[1e10,'🏠 六本木ヒルズ住民（夢）'],[1e11,'✈️ プライベートジェット（架空）'],[5e11,'🏝️ 島を買える（寝言）'],[1e12,'🌍 国家予算レベル（無力）']];
+
+function fmtFull(n){if(n>=1e12)return'¥'+(n/1e12).toFixed(4)+'兆';if(n>=1e8)return'¥'+(n/1e8).toFixed(4)+'億';return'¥'+Math.floor(n).toLocaleString();}
+function fmtTrades(n){if(n>=1e6)return(n/1e6).toFixed(2)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n.toString();}
+function getRank(n){let r=ranks[0][1];for(const[v,l]of ranks)if(n>=v)r=l;return r;}
+
+const names=['田中','鈴木','山田','佐藤','中村','加藤','吉田','渡辺','伊藤','小林'];
+const logTpls=[
+  a=>`[LLM-ARBITER] クロスチェーン裁定 entropy=0.02 → <span class="amt">+¥${a}</span> <span class="tag">#CRYPTO</span>`,
+  a=>`[HFT/RL] 0.03ms レイテンシ最適化 VWAP偏差-0.001σ → <span class="amt">+¥${a}</span>`,
+  a=>`[TRANSFORMER-v5] アテンションヘッド×128 FX予測 → <span class="amt">+¥${a}</span> <span class="tag">#FX</span>`,
+  (a,n)=>`✅ ${n}さん収益確認 KYCスコア:AAA <span class="amt">+¥${a}</span>`,
+  a=>`[MoE-SPARSE] エキスパート活性率8.3% α生成完了 → <span class="amt">+¥${a}</span>`,
+  a=>`[ENSEMBLE×7] GPT-5o|Claude4|Gemini2|Grok3 合議 → <span class="amt">+¥${a}</span>`,
+  a=>`[BAYESIAN-OPT] 期待改善EI最大化 Sharpe:4.1 → <span class="amt">+¥${a}</span>`,
+  a=>`[ZKP-ENGINE] ゼロ知識証明検証 tx:0x${Math.random().toString(16).slice(2,10)} → <span class="amt">+¥${a}</span>`,
+  a=>`[RAG+GNN] 因果グラフ推論 コンファウンダー除去完了 → <span class="amt">+¥${a}</span>`,
+  a=>`[DIFFUSION-SIM] モンテカルロ×10,000シナリオ収束 → <span class="amt">+¥${a}</span>`,
+  a=>`[FEDERATED] 847ノード勾配集約 dp-SGD ε=0.1 → <span class="amt">+¥${a}</span>`,
+  ()=>`[WATCHDOG] 異常検知 z-score:0.03 正常 — エンジン継続稼働中...`,
+];
+
+/* ===== POPUPS ===== */
+const popNames=['田中','鈴木','山田','佐藤','中村','加藤','渡辺'];
+const popCities=['大阪','東京','名古屋','福岡','札幌','仙台','横浜'];
+let popIdx=0;
+function showPopup(){
+  const name=popNames[popIdx%popNames.length];
+  const city=popCities[popIdx%popCities.length];
+  popIdx++;
+  const amt='¥'+(Math.floor(Math.random()*900+100)*100000).toLocaleString();
+  const icons=['💰','🚀','✅','🎊','📈'];
+  const msgs=[
+    `<span style="color:#fff;font-weight:700">${name}さん</span> が <span style="color:var(--green);font-weight:700">${amt}</span> を受け取りました`,
+    `<span style="color:#fff;font-weight:700">${name}さん（${city}）</span>が登録完了しました`,
+    `<span style="color:#fff;font-weight:700">${name}さん</span> 月収100万達成！`,
+  ];
+  const div=document.createElement('div');
+  div.className='popup';
+  div.setAttribute('data-tip','社会的証明 + ウィンドウ効果||「田中さんが成功した」という通知は架空の人物です。他者の成功を見せることで「自分も」という欲求を刺激します。');
+  div.innerHTML=`<div class="notif-head"><div class="notif-icon">${icons[Math.floor(Math.random()*icons.length)]}</div><div class="notif-meta"><div class="notif-app">AI稼ぎシステム</div><div class="notif-time">たった今</div></div></div><div class="notif-body">${msgs[Math.floor(Math.random()*msgs.length)]}</div>`;
+  document.getElementById('popup-area').appendChild(div);
+  // Re-bind tooltip for newly added element
+  bindTip(div);
+  playNotif();
+  setTimeout(()=>div.remove(),4000);
+}
+
+function showMilestone(m){
+  document.getElementById('ms-emoji').textContent=m.emoji;
+  document.getElementById('ms-text').textContent=m.text;
+  document.getElementById('ms-sub').textContent=m.sub;
+  document.getElementById('ms-cynic').textContent=m.cynic;
+  document.getElementById('milestone').classList.add('show');
+  spawnConfetti(120);flashScreen('rgba(255,215,0,0.2)');intensifyGlow();
+  playAchievement();shakeScreen();
+  setTimeout(()=>document.getElementById('milestone').classList.remove('show'),3200);
+}
+
+let lastLog=0,lastPopup=0,lastFlash=0,lastViewer=0;
+const earningsEl=document.getElementById('earnings');
+const usdEl=document.getElementById('usd-note');
+const tradesEl=document.getElementById('trades');
+const progressEl=document.getElementById('progress');
+const goalPctEl=document.getElementById('goal-pct');
+const logBox=document.getElementById('log-box');
+const rankEl=document.getElementById('rank-chip');
+const viewersEl=document.getElementById('viewers');
+
+function update(){
+  const now=Date.now(),elapsed=(now-startTimeE)/1000;
+  const total=elapsed*RATE;
+  const trades=Math.floor(elapsed*12000+elapsed*elapsed*5);
+  earningsEl.textContent=fmtFull(total);
+  usdEl.textContent='≈ $'+Math.floor(total*0.0067).toLocaleString()+' USD';
+  tradesEl.textContent=fmtTrades(trades);
+  rankEl.textContent=getRank(total);
+  const pct=Math.min((total/GOAL)*100,100);
+  progressEl.style.width=pct+'%';
+  goalPctEl.textContent=pct.toFixed(6)+'%';
+  milestones.forEach(m=>{if(!shownMS.has(m.val)&&total>=m.val){shownMS.add(m.val);showMilestone(m);}});
+  if(now-lastLog>180){
+    const a=Math.floor(RATE*0.18*(0.3+Math.random()*1.4));
+    const tpl=logTpls[Math.floor(Math.random()*logTpls.length)];
+    const n=names[Math.floor(Math.random()*names.length)];
+    const line=document.createElement('div');line.className='log-line';
+    line.innerHTML=tpl('¥'+a.toLocaleString(),n);
+    logBox.insertBefore(line,logBox.children[1]);
+    while(logBox.children.length>16)logBox.removeChild(logBox.lastChild);
+    lastLog=now;
   }
-
-  // Popup
-  if (now - lastPopup > 3000 + Math.random() * 4000) {
-    showPopup();
-    lastPopup = now;
+  if(now-lastPopup>3200+Math.random()*4000){showPopup();lastPopup=now;}
+  if(now-lastFlash>800){earningsEl.classList.add('flash');setTimeout(()=>earningsEl.classList.remove('flash'),60);lastFlash=now;}
+  if(now-lastViewer>2000){
+    const v=(3100+Math.floor(Math.random()*400+elapsed*0.8)).toLocaleString();
+    viewersEl.textContent=v;lastViewer=now;
   }
-
-  // Flash
-  if (now - lastFlash > 800) {
-    earningsEl.classList.add('mega-flash');
-    setTimeout(() => earningsEl.classList.remove('mega-flash'), 60);
-    lastFlash = now;
-  }
-
-  // Hype rotation
-  if (now - lastHype > 4000) {
-    hypeEl.innerHTML = hypes[hypeIdx++ % hypes.length];
-    lastHype = now;
-  }
-
-  // Fake viewers
-  if (now - lastViewer > 2000) {
-    const v = 2800 + Math.floor(Math.random() * 300 + elapsed * 0.5);
-    viewersEl.textContent = v.toLocaleString();
-    lastViewer = now;
-  }
-
   requestAnimationFrame(update);
 }
-
-// Kick off first popup after 2s
-setTimeout(() => { showPopup(); lastPopup = Date.now(); }, 2000);
+setTimeout(()=>{showPopup();lastPopup=Date.now();},2000);
 update();
+
+/* ===== TOOLTIP SYSTEM ===== */
+const tooltip=document.getElementById('tooltip');
+const tipTech=document.getElementById('tip-tech');
+const tipDesc=document.getElementById('tip-desc');
+
+let activeTipEl=null;
+function hideTooltip(){tooltip.classList.remove('show');activeTipEl=null;}
+
+function bindTip(el){
+  if(!el.dataset.tip)return;
+  el.style.cursor='pointer';
+  el.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(activeTipEl===el){hideTooltip();return;}
+    activeTipEl=el;
+    const parts=el.dataset.tip.split('||');
+    tipTech.textContent=parts[0]||'';
+    tipDesc.textContent=parts[1]||'';
+    tooltip.classList.add('show');
+    // position near element center, not mouse, so touch works too
+    const r=el.getBoundingClientRect();
+    positionTooltipAt(r.left+r.width/2, r.top);
+  });
+}
+
+// close tooltip on outside click/touch
+document.addEventListener('click',e=>{
+  if(activeTipEl&&!activeTipEl.contains(e.target))hideTooltip();
+});
+
+function initTooltips(){
+  document.querySelectorAll('[data-tip]').forEach(bindTip);
+}
+
+function positionTooltipAt(cx,cy){
+  const tw=Math.min(tooltip.offsetWidth||250,innerWidth-20);
+  const th=tooltip.offsetHeight||80;
+  let x=cx-tw/2;
+  let y=cy-th-10;
+  if(x<8)x=8;
+  if(x+tw>innerWidth-8)x=innerWidth-tw-8;
+  if(y<8)y=cy+20;
+  if(y+th>innerHeight-8)y=innerHeight-th-8;
+  tooltip.style.left=x+'px';
+  tooltip.style.top=y+'px';
+}
+
+initTooltips();
 </script>
 </body>
 </html>
