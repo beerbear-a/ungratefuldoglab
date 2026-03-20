@@ -516,18 +516,25 @@
       position:fixed;z-index:2000;pointer-events:none;
       background:rgba(5,5,5,0.97);
       border:1px solid rgba(255,215,0,0.35);
-      border-radius:14px;padding:12px 16px;
+      border-radius:14px;padding:12px 16px 12px 16px;
       max-width:min(250px, calc(100vw - 20px));width:max-content;
       opacity:0;transition:opacity 0.18s;
       backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
       box-shadow:0 8px 32px rgba(0,0,0,0.7);
     }
-    #tooltip.show { opacity:1; }
+    #tooltip.show { opacity:1;pointer-events:auto; }
     .tip-tech {
       font-size:9px;font-weight:700;color:var(--orange);
       text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;
     }
-    .tip-desc { font-size:11px;color:rgba(255,255,255,0.7);line-height:1.55; }
+    .tip-desc { font-size:11px;color:rgba(255,255,255,0.7);line-height:1.55;margin-bottom:10px; }
+    .tip-close {
+      display:block;width:100%;padding:7px 0;margin-top:2px;
+      background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);
+      border-radius:8px;
+      font-size:11px;color:rgba(255,255,255,0.45);text-align:center;
+      cursor:pointer;
+    }
 
     /* ===== EMAIL FREEZE ===== */
     #email-freeze {
@@ -792,7 +799,7 @@
 </div>
 
 <!-- Tooltip -->
-<div id="tooltip"><div class="tip-tech" id="tip-tech"></div><div class="tip-desc" id="tip-desc"></div></div>
+<div id="tooltip"><div class="tip-tech" id="tip-tech"></div><div class="tip-desc" id="tip-desc"></div><button class="tip-close" id="tip-close">閉じる</button></div>
 
 <script>
 /* ===== MATRIX ===== */
@@ -1275,6 +1282,13 @@ const tipDesc=document.getElementById('tip-desc');
 let activeTipEl=null;
 function hideTooltip(){tooltip.classList.remove('show');activeTipEl=null;}
 
+// close on × button
+document.getElementById('tip-close').addEventListener('click',e=>{
+  e.stopPropagation();hideTooltip();
+});
+// close on clicking tooltip body
+tooltip.addEventListener('click',e=>{ e.stopPropagation();hideTooltip(); });
+
 function bindTip(el){
   if(!el.dataset.tip)return;
   el.style.cursor='pointer';
@@ -1286,16 +1300,18 @@ function bindTip(el){
     tipTech.textContent=parts[0]||'';
     tipDesc.textContent=parts[1]||'';
     tooltip.classList.add('show');
-    // position near element center, not mouse, so touch works too
     const r=el.getBoundingClientRect();
     positionTooltipAt(r.left+r.width/2, r.top);
   });
 }
 
-// close tooltip on outside click/touch
-document.addEventListener('click',e=>{
-  if(activeTipEl&&!activeTipEl.contains(e.target))hideTooltip();
-});
+// close tooltip on outside click/touch (including mobile tap)
+function outsideClose(e){
+  if(!activeTipEl)return;
+  if(!activeTipEl.contains(e.target)&&!tooltip.contains(e.target))hideTooltip();
+}
+document.addEventListener('click',outsideClose);
+document.addEventListener('touchstart',outsideClose,{passive:true});
 
 function initTooltips(){
   document.querySelectorAll('[data-tip]').forEach(bindTip);
